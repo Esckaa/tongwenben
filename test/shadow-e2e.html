@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Shadow E2E</title>
+<style>
+  body { font: 14px/1.6 system-ui, sans-serif; margin: 16px; }
+  #host { border: 1px dashed #bbb; padding: 10px; border-radius: 8px; }
+  #out { white-space: pre-wrap; background: #f6f6f6; padding: 12px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<h1>Shadow E2E</h1>
+<div id="host"></div>
+<p>Light DOM: shadow needle four.</p>
+
+<details id="det"><summary>更多</summary><p id="collapsed">collapsed needle text</p></details>
+<div id="hidden" style="display:none"><span id="hiddenText">hidden needle text</span></div>
+
+<pre id="out">running…</pre>
+
+<script>
+  (function () {
+    var host = document.getElementById('host');
+    var root = host.attachShadow({ mode: 'open' });
+    root.innerHTML =
+      '<style>p{margin:0 0 8px;color:#222}</style>' +
+      '<p id="s1">Shadow text: shadow needle once.</p>' +
+      '<p id="s2">shadow needle twice.</p>' +
+      '<slot></slot>';
+    var slotted = document.createElement('p');
+    slotted.id = 'slotted';
+    slotted.textContent = 'Slotted: shadow needle three.';
+    host.appendChild(slotted);
+  })();
+</script>
+
+<script src="../extension/src/textmap.js"></script>
+<script src="../extension/src/search.js"></script>
+<script src="../extension/src/fallback.js"></script>
+<script src="../extension/src/highlight.js"></script>
+<script src="../extension/src/popup.js"></script>
+<script src="../extension/src/content.js"></script>
+<script src="shadow-e2e.js"></script>
+</body>
+</html>

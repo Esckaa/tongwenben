@@ -82,7 +82,9 @@
     const segs = [];
     const headings = [];
     const docs = new Set([root.ownerDocument || document]);
+    const shadowRoots = new Set();
     const visitedDocs = new Set([root.ownerDocument || document]);
+    const visitedRoots = new Set();
     let length = 0;
     let lastWasSep = true; // 避免开头出现分隔符
 
@@ -151,6 +153,39 @@
         continue;
       }
 
+      // 开放 shadow root：渲染内容在影子树里，light DOM 只有通过 slot 才会显示
+      if (node.shadowRoot) {
+        const shadow = node.shadowRoot;
+        if (!visitedRoots.has(shadow)) {
+          visitedRoots.add(shadow);
+          shadowRoots.add(shadow);
+          pushSep();
+          stack.push({ node: null, exit: true, sepAfterFrame: true });
+          const shadowKids = shadow.childNodes;
+          for (let i = shadowKids.length - 1; i >= 0; i -= 1) {
+            stack.push({ node: shadowKids[i], exit: false });
+          }
+        }
+        continue;
+      }
+
+      // slot：走 assignedNodes，没有分配时退回 fallback 内容
+      if (node.tagName === 'SLOT') {
+        pushSep();
+        let assigned = [];
+        try {
+          assigned = node.assignedNodes ? node.assignedNodes({ flatten: true }) : [];
+        } catch (err) {
+          assigned = [];
+        }
+        const list = assigned.length ? assigned : Array.from(node.childNodes);
+        stack.push({ node: null, exit: true, sepAfterFrame: true });
+        for (let i = list.length - 1; i >= 0; i -= 1) {
+          stack.push({ node: list[i], exit: false });
+        }
+        continue;
+      }
+
       if (SKIP_TAGS.has(node.tagName)) continue;
 
       if (BLOCK_TAGS.has(node.tagName)) pushSep();
@@ -179,7 +214,7 @@
       }
     }
 
-    return { text: chunks.join(''), segs, headings, docs, sep: SEP };
+    return { text: chunks.join(''), segs, headings, docs, shadowRoots, sep: SEP };
   }
 
   /**

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Shadow DOM 测试</title>
+<style>
+  body {
+    margin: 24px;
+    max-width: 760px;
+    font: 15px/1.8 system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    color: #222;
+  }
+  h1 { font-size: 20px; margin: 0 0 12px; }
+  .hint {
+    background: #fff8e1;
+    border: 1px solid #f0e0a8;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 0 0 18px;
+    font-size: 14px;
+  }
+  .status { margin-top: 18px; font-size: 13px; color: #666; }
+  .status.good { color: #2e7d32; }
+  .status.bad { color: #b00020; }
+</style>
+</head>
+<body>
+<h1>Shadow DOM 测试</h1>
+
+<div class="hint">
+  1. 在虚线框里的 shadow 内容中选中<b>加粗的两个词</b>（shadow + needle），不要只选一个词；<br>
+  2. 面板应显示 4 处：shadow 内 2 + slot 投影 1 + 顶层 1；<br>
+  3. 点 shadow 里的条目，应滚到对应位置并高亮。
+</div>
+
+<div id="host" style="border: 1px dashed #bbb; border-radius: 8px; padding: 12px 14px; margin: 0 0 16px;"></div>
+
+<p>Light DOM: shadow needle four.</p>
+
+<p id="sts-status" class="status">扩展状态：检查中…</p>
+
+<script>
+  (function () {
+    var host = document.getElementById('host');
+    var root = host.attachShadow({ mode: 'open' });
+
+    root.innerHTML =
+      '<style>p{margin:0 0 8px;color:#222}</style>' +
+      '<p id="s1">Shadow text: <b>shadow needle</b> once.</p>' +
+      '<p id="s2">shadow needle twice.</p>' +
+      '<slot></slot>';
+
+    var slotted = document.createElement('p');
+    slotted.id = 'slotted';
+    slotted.textContent = 'Slotted: shadow needle three.';
+    host.appendChild(slotted);
+  })();
+
+  setTimeout(function () {
+    var el = document.getElementById('sts-status');
+    var version = document.documentElement.getAttribute('data-sts-version');
+    if (!version) {
+      el.textContent = '扩展未注入：确认已重载扩展、页面已刷新；本地文件要开启「允许访问文件网址」。';
+      el.className = 'status bad';
+    } else {
+      el.textContent = '扩展已注入：v' + version + '（shadow 内容选中后应能检索）';
+      el.className = 'status good';
+    }
+  }, 1500);
+</script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+/* 真实扩展环境下的 Shadow DOM 测试。 */
+const { spawn, execFileSync } = require('child_process');
+const path = require('path');
+
+const EDGE =
+  process.env.STS_EDGE ||
+  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
+const EXT = path.resolve(__dirname, '..', 'extension');
+const URL = 'http://127.0.0.1:8765/test/fixtures/shadow.html';
+const PORT = 9341;
+const PROFILE = path.resolve(
+  __dirname,
+  '..',
+  '..',
+  '..',
+  '.dsh',
+  'tmp',
+  'shadow-ext-' + Date.now()
+);
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function killTree(pid) {
+  try {
+    execFileSync('taskkill', ['/PID', String(pid), '/T', '/F'], { stdio: 'ignore' });
+  } catch (err) {
+    // 已退出
+  }
+}
+
+async function main() {
+  const child = spawn(
+    EDGE,
+    [
+      '--headless=new',
+      '--no-sandbox',
+      '--disable-gpu',
+      '--disable-crashpad',
+      '--no-first-run',
+      '--no-default-browser-check',
+      '--remote-debugging-port=' + PORT,
+      '--user-data-dir=' + PROFILE,
+      '--load-extension=' + EXT,
+      '--disable-extensions-except=' + EXT,
+      URL
+    ],
+    { stdio: 'ignore', detached: true }
+  );
+  child.unref();
+
+  let target = null;
+  for (let i = 0; i < 120; i += 1) {
+    try {
+      const list = await (await fetch('http://127.0.0.1:' + PORT + '/json')).json();
+      target = list.find((t) => t.type === 'page' && t.url.indexOf('shadow.html') !== -1);
+      if (target) break;
+    } catch (err) {
+      // 等
+    }
+    await sleep(300);
+  }
+
+  if (!target) {
+    console.log('NO_TARGET');
+    killTree(child.pid);
+    process.exit(1);
+  }
+
+  const ws = new WebSocket(target.webSocketDebuggerUrl);
+  const pending = new Map();
+  const exceptions = [];
+  let seq = 0;
+
+  ws.addEventListener('message', (event) => {
+    const msg = JSON.parse(event.data);
+    if (msg.id && pending.has(msg.id)) {
+      pending.get(msg.id)(msg);
+      pending.delete(msg.id);
+    } else if (msg.method === 'Runtime.exceptionThrown') {
+      const d = msg.params.exceptionDetails;
+      exceptions.push((d.exception && (d.exception.description || d.exception.value)) || d.text);
+    }
+  });
+
+  await new Promise((resolve, reject) => {
+    ws.addEventListener('open', resolve);
+    ws.addEventListener('error', reject);
+  });
+
+  function cmd(method, params) {
+    return new Promise((resolve) => {
+      const id = ++seq;
+      pending.set(id, resolve);
+      ws.send(JSON.stringify({ id, method, params: params || {} }));
+    });
+  }
+
+  async function evalJs(expression) {
+    const res = await cmd('Runtime.evaluate', {
+      expression,
+      returnByValue: true,
+      awaitPromise: true
+    });
+    const result = res.result || {};
+    if (result.exceptionDetails) return { __error: result.exceptionDetails.text };
+    return result.result ? result.result.value : undefined;
+  }
+
+  await cmd('Runtime.enable');
+
+  let info = '';
+  for (let i = 0; i < 60; i += 1) {
+    info = await evalJs(`(async () => {
+      const host = document.getElementById('host');
+      const root = host && host.shadowRoot;
+      if (!root || !root.getElementById('s1')) return '';
+      const p = root.getElementById('s1');
+      const token = 'shadow needle';
+      const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+      let node = null;
+      let index = -1;
+      while ((node = walker.nextNode())) {
+        index = node.nodeValue.indexOf(token);
+        if (index >= 0) break;
+      }
+      if (!node || index < 0) return '';
+
+      const range = document.createRange();
+      range.setStart(node, index);
+      range.setEnd(node, index + token.length);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      document.dispatchEvent(new MouseEvent('mouseup', {
+        bubbles: true, composed: true, clientX: 400, clientY: 300, button: 0
+      }));
+
+      await new Promise((r) => setTimeout(r, 1000));
+      const all = window.CSS && CSS.highlights ? CSS.highlights.get('sts-all') : null;
+      return JSON.stringify({
+        host: !!document.querySelector('[data-sts-host]'),
+        all: all ? Array.from(all).length : -1,
+        shadowStyle: root.adoptedStyleSheets ? root.adoptedStyleSheets.length : -1,
+        version: document.documentElement.getAttribute('data-sts-version')
+      });
+    })()`);
+    if (info && info !== '') break;
+    await sleep(300);
+  }
+
+  console.log('INFO ' + info);
+  console.log('EXCEPTIONS ' + JSON.stringify(exceptions.slice(0, 5)));
+
+  ws.close();
+  killTree(child.pid);
+}
+
+main().catch((err) => {
+  console.log('FATAL ' + (err && err.stack ? err.stack : err));
+  process.exit(1);
+});

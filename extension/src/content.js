@@ -83,6 +83,15 @@
     return node.nodeType === 1 ? node : node.parentElement;
   }
 
+  /** 元素/文本的父级；走到 shadow root 顶部时跳到 host。 */
+  function parentOrHost(node) {
+    if (!node) return null;
+    if (node.parentElement) return node.parentElement;
+
+    const root = node.getRootNode ? node.getRootNode() : null;
+    return root && root.host ? root.host : null;
+  }
+
   /** iframe 内的坐标 -> 顶层视口坐标 */
   function toTopPoint(doc, x, y) {
     let win = doc && doc.defaultView;
@@ -177,7 +186,7 @@
       if (scrollable && node.scrollHeight > node.clientHeight + 1) {
         list.push({ el: node, top: node.scrollTop, left: node.scrollLeft });
       }
-      node = node.parentElement;
+      node = parentOrHost(node);
     }
 
     let win = doc.defaultView;
@@ -198,7 +207,7 @@
         ) {
           list.push({ el: parent, top: parent.scrollTop, left: parent.scrollLeft });
         }
-        parent = parent.parentElement;
+        parent = parentOrHost(parent);
       }
 
       win = parentDoc.defaultView;
@@ -221,10 +230,69 @@
 
   /* ---------- 跳转 ---------- */
 
+  /** 判断目标为什么不可见：折叠、隐藏、或被移除。 */
+  function diagnoseTarget(range) {
+    const el = elementOf(range.startContainer);
+    if (!el) return { kind: 'gone', el: null };
+
+    // 先看折叠：内容即使有 content-visibility，也优先报“折叠”
+    let node = el;
+    while (node) {
+      if (node.tagName === 'DETAILS' && !node.open) {
+        let summary = null;
+        try {
+          summary = node.querySelector(':scope > summary');
+        } catch (err) {
+          summary = null;
+        }
+        if (!summary || !summary.contains(el)) {
+          return { kind: 'details', el: node };
+        }
+      }
+      node = parentOrHost(node);
+    }
+
+    node = el;
+    while (node) {
+      const win = node.ownerDocument && node.ownerDocument.defaultView;
+      if (win) {
+        const cs = win.getComputedStyle(node);
+        if (
+          cs &&
+          (cs.display === 'none' ||
+            cs.visibility === 'hidden' ||
+            cs.visibility === 'collapse' ||
+            cs.contentVisibility === 'hidden')
+        ) {
+          return { kind: 'hidden', el: node };
+        }
+      }
+      node = parentOrHost(node);
+    }
+
+    const rect = range.getBoundingClientRect();
+    if (!rect || (rect.width === 0 && rect.height === 0)) {
+      return { kind: 'invisible', el };
+    }
+
+    return null;
+  }
+
   function jumpTo(range) {
     const doc = range.startContainer.ownerDocument;
     const el = elementOf(range.startContainer);
-    if (!el) return false;
+    if (!el) return { ok: false, note: '目标已从页面移除' };
+
+    const issue = diagnoseTarget(range);
+
+    // 折叠内容：点击跳转视为用户意图，直接展开
+    if (issue && issue.kind === 'details') {
+      try {
+        issue.el.open = true;
+      } catch (err) {
+        // 忽略
+      }
+    }
 
     try {
       el.scrollIntoView({ block: 'center', inline: 'nearest' });
@@ -233,7 +301,15 @@
     }
 
     const rect = range.getBoundingClientRect();
-    if (!rect || (rect.width === 0 && rect.height === 0)) return false;
+    if (!rect || (rect.width === 0 && rect.height === 0)) {
+      if (issue && issue.kind === 'hidden') {
+        return { ok: false, note: '目标被隐藏（display:none 或 visibility:hidden）' };
+      }
+      if (issue && issue.kind === 'details') {
+        return { ok: false, note: '目标在折叠内容里，展开后仍不可见' };
+      }
+      return { ok: false, note: '目标当前不可见（可能被折叠或隐藏）' };
+    }
 
     // 把外层 iframe 逐级滚进视口
     let win = doc.defaultView;
@@ -257,7 +333,10 @@
       }
     }
 
-    return true;
+    return {
+      ok: true,
+      note: issue && issue.kind === 'details' ? '已展开折叠内容并跳转' : ''
+    };
   }
 
   /* ---------- 面板 ---------- */
@@ -452,8 +531,9 @@
         if (!item) return;
         highlighter.setActive(item.range);
         jumped = true;
-        const ok = jumpTo(item.range);
-        if (!ok) popup.setNote('目标当前不可见（可能被折叠或隐藏）');
+        const result = jumpTo(item.range);
+        if (!result.ok) popup.setNote(result.note || '目标当前不可见');
+        else if (result.note) popup.setNote(result.note);
       }
     });
   }
@@ -602,6 +682,19 @@
     });
   }
 
+  /** shadow root 的变化不会冒泡到 document，要单独观察。 */
+  function observeShadowRoot(root) {
+    if (!root || observedDocs.has(root)) return;
+    observedDocs.add(root);
+
+    const mo = new MutationObserver(onMutations);
+    mo.observe(root, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+  }
+
   /** iframe 加载/切换文档后，索引和监听都要跟着更新 */
   function attachFrameLoads(doc) {
     const frames = doc.querySelectorAll('iframe, frame');
@@ -656,6 +749,7 @@
   function watchMapDocs(textMap) {
     if (!textMap || !textMap.docs) return;
     for (const doc of textMap.docs) watchDoc(doc);
+    for (const root of textMap.shadowRoots || []) observeShadowRoot(root);
   }
 
   /* ---------- 启动 ---------- */
@@ -668,5 +762,5 @@
 
   // 自测钩子：内容脚本运行在隔离世界，页面脚本看不到；
   // 只有把 content.js 当普通脚本加载的 test/e2e.html 能用到。
-  window.__STS_DEBUG__ = { popup, highlighter, getMap };
+  window.__STS_DEBUG__ = { popup, highlighter, getMap, diagnoseTarget, jumpTo };
 })();

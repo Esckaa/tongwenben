@@ -19,6 +19,8 @@
 - **页面变化自动刷新**（2026-11-09）：面板开着时，页面新增/删除文本会在 450ms 防抖后重建索引并原地更新列表；结果没变不重绘，面板位置（包括拖拽后的位置）保持不变。
 - **内置 PDF 阅读器**（2026-11-09）：点扩展工具栏图标，或设置页里的「打开 PDF 阅读器」，打开本地 PDF。PDF.js 渲染页面并生成可选中的文字层，选中文字后同样弹列表、跳转、高亮。
 - **同源 iframe**（2026-11-09）：顶层页面和同源 iframe 的文本合并成一份索引；在 iframe 里选中文字，一样在顶层弹面板、跨文档高亮、跳转。跨域 iframe 暂不支持。
+- **开放 Shadow DOM**（2026-11-09）：递归进入开放 shadow root，`<slot>` 按 `assignedNodes` 处理，避免投影内容被算两遍；影子树内单独注入 `::highlight` 样式。closed shadow root 仍不支持。
+- **折叠/隐藏目标提示**（2026-11-09）：跳转前检查 `<details>`、`display:none`、`visibility:hidden`；折叠内容会先展开再跳并提示，隐藏目标给出明确原因。
 
 ## 安装
 
@@ -71,6 +73,18 @@
 | 跨 iframe 高亮 | 面板打开时 | 顶层 1 处黄标、iframe 内 2 处黄标同时出现 |
 | 跨 iframe 跳转 | 点 iframe 里的条目 | iframe 内部滚到对应段落，橙色高亮 |
 | 顶层不受影响 | 在顶层选中同一短语 | 仍然正常弹面板、计数为 3 |
+
+### Shadow DOM
+
+打开 `test/fixtures/shadow.html`：
+
+| 验收项 | 操作 | 预期 |
+|---|---|---|
+| 跨 shadow 合并 | 选中 shadow 内加粗的两个词（shadow + needle） | 面板显示 4 处：shadow 内 2 + slot 投影 1 + 顶层 1 |
+| shadow 内高亮 | 面板打开时 | shadow 内和顶层同时黄标 |
+| 点击跳转 | 点 shadow 里的条目 | 滚到 shadow 内对应段落 |
+
+折叠/隐藏目标的处理由自动化用例覆盖（`shadow-cdp.js` 里的 `diagnose-*`），手动不容易构造稳定时序。
 | 设置生效 | 扩展选项里关掉「按标题分组」 | 下一次选区，列表不再出现分组标题 |
 
 打开 `test/fixtures/stress.html`：
@@ -121,7 +135,14 @@ node test/frames-cdp.js       # 页面模式：7 项断言（浮层、3 处命�
 node test/frames-ext-cdp.js   # 真实扩展：顶层 1 处 + iframe 2 处
 ```
 
-当前结果：**32/32、20/20、扩展环境 HOST YES / ALL 3、PDF 阅读器 1 页 / 1 文字层 / 命中 1 处、同源 iframe 7/7 且扩展环境 top 1 / frame 2，全部通过**
+Shadow DOM 同样两条：
+
+```powershell
+node test/shadow-cdp.js       # 11 项：shadow 选区、slot、跨影子高亮、折叠/隐藏诊断
+node test/shadow-ext-cdp.js   # 真实扩展：4 处命中、shadow 样式已注入
+```
+
+当前结果：**32/32、20/20、扩展环境 HOST YES / ALL 3、PDF 阅读器 1 页 / 1 文字层 / 命中 1 处、同源 iframe 7/7 且扩展环境 top 1 / frame 2、Shadow DOM 11/11 且扩展环境 all 4，全部通过**
 （2026-11-09，Edge 157.0.4341.42 无头模式）。
 
 脚本默认使用 `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`；
@@ -162,6 +183,10 @@ test/
   frames-e2e.js
   frames-cdp.js    同源 iframe 自测（页面模式）
   frames-ext-cdp.js 同源 iframe 自测（真实扩展）
+  shadow-e2e.html  Shadow DOM 端到端页
+  shadow-e2e.js
+  shadow-cdp.js    Shadow DOM 自测（页面模式）
+  shadow-ext-cdp.js Shadow DOM 自测（真实扩展）
   find-ext-id.js 未打包扩展 ID 探测
   fixtures/demo.html      英语阅读分栏演示
   fixtures/live.html      自动刷新验证页（会自己追加文本）
@@ -170,11 +195,12 @@ test/
   fixtures/sample.pdf      1 页测试 PDF
   fixtures/frames.html     同源 iframe 演示
   fixtures/frame-src.html  iframe 子页面
+  fixtures/shadow.html     Shadow DOM 演示
 ```
 
 ## 已知限制
 
-- 只检索**主文档已渲染的可见文本**；同源 iframe 已支持，跨域 iframe、Shadow DOM、折叠内容、其他标签页都不在内。
+- 只检索**主文档已渲染的可见文本**；同源 iframe 与开放 shadow root 已支持，跨域 iframe、closed shadow root、折叠内容、其他标签页都不在内。
 - 近似兜底是**关键词覆盖**，不理解语义，也可能把不相干的句子排上来；它只是「找最像的」，不保证正确。
 - 兜底最多给 3 条，只按覆盖率排序。
 - 浏览器内置 PDF 阅读器读不到；Canvas 文档（Google Docs、腾讯文档）读不到。
@@ -199,8 +225,6 @@ test/
 
 ## 下一步（P3 剩余）
 
-- 大页面分片建索引，避免首次选区卡顿
-- Shadow DOM
-- 目标被折叠/隐藏时的更准确提示
 - 跨域 iframe（如果需要，走 all_frames + 帧间消息）
+- 大页面分片索引（用户已明确暂不做）
 - PDF 阅读器：懒渲染大文档、页面跳转与页码定位
