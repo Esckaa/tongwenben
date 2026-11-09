@@ -1,10 +1,16 @@
 {
   "manifest_version": 3,
   "name": "同文本检索",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "选中页面文字，在指针旁列出全页相同文本，点击跳转。",
   "permissions": ["storage"],
   "options_page": "options.html",
+  "action": {
+    "default_title": "打开 PDF 阅读器"
+  },
+  "background": {
+    "service_worker": "src/background.js"
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],

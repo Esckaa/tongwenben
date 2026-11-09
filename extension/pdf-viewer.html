@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>PDF 阅读器 · 同文本检索</title>
+<link rel="stylesheet" href="src/page.css">
+<link rel="stylesheet" href="src/pdf-viewer.css">
+</head>
+<body>
+
+<header class="toolbar">
+  <label class="open-btn">
+    打开 PDF
+    <input id="file" type="file" accept="application/pdf,.pdf">
+  </label>
+  <span id="meta" class="meta">未打开文件</span>
+  <span class="spacer"></span>
+  <button id="zoomOut" class="icon-btn" type="button" title="缩小">−</button>
+  <span id="zoomLabel" class="zoom">100%</span>
+  <button id="zoomIn" class="icon-btn" type="button" title="放大">+</button>
+  <button id="fit" class="text-btn" type="button" title="适合宽度">适合宽度</button>
+</header>
+
+<main id="pages" data-sts-root></main>
+
+<div id="empty" class="empty">
+  <div class="empty-card">
+    <h1>PDF 阅读器</h1>
+    <p>把 PDF 拖到这里，或点左上角「打开 PDF」。</p>
+    <p class="hint">打开后，选中文字就会和网页里一样弹出相同文本列表。</p>
+  </div>
+</div>
+
+<div id="progress" class="progress"></div>
+<pre id="test-out" class="test-out" hidden></pre>
+
+<script src="src/textmap.js"></script>
+<script src="src/search.js"></script>
+<script src="src/fallback.js"></script>
+<script src="src/highlight.js"></script>
+<script src="src/popup.js"></script>
+<script src="src/content.js"></script>
+<script type="module" src="src/pdf-viewer.js"></script>
+</body>
+</html>

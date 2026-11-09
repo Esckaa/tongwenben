@@ -1,0 +1,257 @@
+:root {
+  color-scheme: light dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #e8e6e0;
+  color: #1a1a1a;
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom: 1px solid #d9d5ca;
+  backdrop-filter: blur(6px);
+}
+
+.open-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 7px;
+  background: #1f3a5f;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.open-btn input {
+  display: none;
+}
+
+.meta {
+  color: #666;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 46vw;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.icon-btn,
+.text-btn {
+  border: 1px solid #cfcabd;
+  background: #fff;
+  color: inherit;
+  border-radius: 7px;
+  cursor: pointer;
+  font: inherit;
+  padding: 5px 9px;
+  line-height: 1;
+}
+
+.icon-btn {
+  width: 30px;
+  height: 30px;
+  font-size: 16px;
+}
+
+.text-btn {
+  height: 30px;
+  font-size: 12px;
+}
+
+.icon-btn:hover,
+.text-btn:hover {
+  background: #f4f1ea;
+}
+
+.zoom {
+  min-width: 44px;
+  text-align: center;
+  color: #555;
+  font-size: 12px;
+}
+
+#pages {
+  display: block;
+  padding: 20px 0 80px;
+}
+
+.pdf-page {
+  position: relative;
+  margin: 18px auto;
+  background: #fff;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.18);
+}
+
+.pdf-page canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* PDF.js 文本层：文字透明但可选中，高亮/选区画在背景上 */
+.textLayer {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  line-height: 1;
+  text-align: initial;
+  text-size-adjust: none;
+  transform-origin: 0 0;
+  caret-color: CanvasText;
+  z-index: 0;
+}
+
+.textLayer :is(span, br) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.textLayer span.markedContent {
+  top: 0;
+  height: 0;
+}
+
+.textLayer span[role="img"] {
+  user-select: none;
+  cursor: default;
+}
+
+.textLayer ::selection {
+  background: rgba(0, 100, 255, 0.28);
+}
+
+.empty {
+  position: fixed;
+  inset: 52px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.empty-card {
+  max-width: 460px;
+  padding: 26px 30px;
+  background: #fff;
+  border: 1px dashed #c9c3b5;
+  border-radius: 14px;
+  text-align: center;
+  pointer-events: auto;
+}
+
+.empty-card h1 {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+
+.empty-card p {
+  margin: 4px 0;
+  color: #555;
+}
+
+.empty-card .hint {
+  color: #888;
+  font-size: 12px;
+}
+
+.progress {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  background: rgba(31, 58, 95, 0.92);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.progress.is-on {
+  opacity: 1;
+}
+
+.test-out {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 20;
+  margin: 0;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font: 12px/1.5 Consolas, monospace;
+  white-space: pre-wrap;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #17181a;
+    color: #e8eaed;
+  }
+
+  .toolbar {
+    background: rgba(32, 33, 36, 0.94);
+    border-color: #3c4043;
+  }
+
+  .icon-btn,
+  .text-btn {
+    background: #202124;
+    border-color: #3c4043;
+  }
+
+  .icon-btn:hover,
+  .text-btn:hover {
+    background: #2d2e31;
+  }
+
+  .empty-card {
+    background: #202124;
+    border-color: #3c4043;
+  }
+
+  .empty-card p {
+    color: #bdc1c6;
+  }
+
+  .meta,
+  .zoom {
+    color: #9aa0a6;
+  }
+
+  .pdf-page {
+    box-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
+  }
+}

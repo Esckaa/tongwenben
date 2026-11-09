@@ -66,7 +66,8 @@
 
   function getMap() {
     if (!map || mapDirty) {
-      const built = TextMap.build(document.body);
+      const root = document.querySelector('[data-sts-root]') || document.body;
+      const built = TextMap.build(root);
       built.norm = Search.normalizeWithMap(built.text);
       built.headings = (built.headings || [])
         .map((h) => ({
@@ -388,6 +389,11 @@
 
     if (isEditable(sel.anchorNode) || isEditable(sel.focusNode)) return;
     if (visibleCharCount(raw) < minLength(raw)) return;
+
+    // 页面用 data-sts-root 圈定了检索范围时，范围外的选区不处理（如 PDF 阅读器的工具栏）
+    const scope = document.querySelector('[data-sts-root]');
+    if (scope && !scope.contains(sel.anchorNode)) return;
+    if (scope && !scope.contains(sel.focusNode)) return;
 
     const needle = Search.normalizeNeedle(raw);
     if (!needle) return;

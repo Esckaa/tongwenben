@@ -69,6 +69,22 @@ h1 {
   color: inherit;
 }
 
+.open-pdf {
+  margin-left: auto;
+  font: inherit;
+  padding: 5px 14px;
+  border-radius: 6px;
+  border: 1px solid #1f3a5f;
+  background: #1f3a5f;
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.open-pdf:hover {
+  background: #27496f;
+}
+
 .status {
   min-height: 20px;
   margin: 8px 0 0;
