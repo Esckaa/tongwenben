@@ -538,12 +538,39 @@
     });
   }
 
-  function run(doc) {
+  /** 真实鼠标在 shadow 里选中时，document 的 Selection 只是镜像；从事件路径找 shadow root。 */
+  function shadowRootOf(e) {
+    const path = e.composedPath ? e.composedPath() : [];
+    const target = path[0] || e.target;
+    if (!target || !target.getRootNode) return null;
+
+    const root = target.getRootNode();
+    return root && root.nodeType === 11 && root.host ? root : null;
+  }
+
+  function run(doc, shadowRoot) {
     doc = doc || document;
     const win = doc.defaultView;
     if (!win) return;
 
-    const sel = win.getSelection();
+    let sel = null;
+    if (shadowRoot && typeof shadowRoot.getSelection === 'function') {
+      try {
+        sel = shadowRoot.getSelection();
+      } catch (err) {
+        sel = null;
+      }
+    }
+
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed || !sel.toString().trim()) {
+      sel = win.getSelection();
+    }
+
+    if (shadowRoot && sel && sel.anchorNode) {
+      const anchorRoot = sel.anchorNode.getRootNode ? sel.anchorNode.getRootNode() : null;
+      if (anchorRoot !== shadowRoot) sel = win.getSelection();
+    }
+
     if (!sel || sel.rangeCount === 0) return;
 
     const range = sel.getRangeAt(0);
@@ -575,16 +602,17 @@
     executeSearch(raw, pointer, range, false);
   }
 
-  function schedule(ms, doc) {
-    const target = doc || document;
-    const prev = timers.get(target);
+  function schedule(ms, doc, shadowRoot) {
+    const targetDoc = doc || document;
+    const key = shadowRoot || targetDoc;
+    const prev = timers.get(key);
     if (prev) clearTimeout(prev);
 
     timers.set(
-      target,
+      key,
       setTimeout(() => {
-        timers.delete(target);
-        run(target);
+        timers.delete(key);
+        run(targetDoc, shadowRoot);
       }, ms)
     );
   }
@@ -601,7 +629,7 @@
     if (e.button !== 0) return;
     if (doc === document && isOurEvent(e)) return;
     lastPointer = toTopPoint(doc, e.clientX, e.clientY);
-    schedule(MOUSE_DEBOUNCE, doc);
+    schedule(MOUSE_DEBOUNCE, doc, shadowRootOf(e));
   }
 
   function onMouseDown(e, doc) {
@@ -610,9 +638,9 @@
     closeAll();
   }
 
-  function onSelectionChange(doc) {
+  function onSelectionChange(doc, shadowRoot) {
     if (popup.isOpen() && jumped) return;
-    schedule(KEY_DEBOUNCE, doc);
+    schedule(KEY_DEBOUNCE, doc, shadowRoot);
   }
 
   function onKeyDown(e, doc) {
@@ -692,6 +720,11 @@
       childList: true,
       subtree: true,
       characterData: true
+    });
+
+    // 影子树里的选区变化不一定在 document 上触发，单独监听
+    root.addEventListener('selectionchange', () => {
+      onSelectionChange(root.ownerDocument || document, root);
     });
   }
 

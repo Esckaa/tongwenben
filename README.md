@@ -19,7 +19,7 @@
 - **页面变化自动刷新**（2026-11-09）：面板开着时，页面新增/删除文本会在 450ms 防抖后重建索引并原地更新列表；结果没变不重绘，面板位置（包括拖拽后的位置）保持不变。
 - **内置 PDF 阅读器**（2026-11-09）：点扩展工具栏图标，或设置页里的「打开 PDF 阅读器」，打开本地 PDF。PDF.js 渲染页面并生成可选中的文字层，选中文字后同样弹列表、跳转、高亮。
 - **同源 iframe**（2026-11-09）：顶层页面和同源 iframe 的文本合并成一份索引；在 iframe 里选中文字，一样在顶层弹面板、跨文档高亮、跳转。跨域 iframe 暂不支持。
-- **开放 Shadow DOM**（2026-11-09）：递归进入开放 shadow root，`<slot>` 按 `assignedNodes` 处理，避免投影内容被算两遍；影子树内单独注入 `::highlight` 样式。closed shadow root 仍不支持。
+- **开放 Shadow DOM**（2026-11-09）：递归进入开放 shadow root，`<slot>` 按 `assignedNodes` 处理，避免投影内容被算两遍；影子树内单独注入 `::highlight` 样式。真实鼠标选区从 `shadowRoot.getSelection()` 读取（`document.getSelection()` 在影子树里只是镜像）。closed shadow root 仍不支持。
 - **折叠/隐藏目标提示**（2026-11-09）：跳转前检查 `<details>`、`display:none`、`visibility:hidden`；折叠内容会先展开再跳并提示，隐藏目标给出明确原因。
 
 ## 安装
@@ -140,9 +140,10 @@ Shadow DOM 同样两条：
 ```powershell
 node test/shadow-cdp.js       # 11 项：shadow 选区、slot、跨影子高亮、折叠/隐藏诊断
 node test/shadow-ext-cdp.js   # 真实扩展：4 处命中、shadow 样式已注入
+node test/shadow-real-cdp.js  # 真实鼠标拖选：确认 document 镜像与 shadowRoot 选区
 ```
 
-当前结果：**32/32、20/20、扩展环境 HOST YES / ALL 3、PDF 阅读器 1 页 / 1 文字层 / 命中 1 处、同源 iframe 7/7 且扩展环境 top 1 / frame 2、Shadow DOM 11/11 且扩展环境 all 4，全部通过**
+当前结果：**32/32、20/20、扩展环境 HOST YES / ALL 3、PDF 阅读器 1 页 / 1 文字层 / 命中 1 处、同源 iframe 7/7 且扩展环境 top 1 / frame 2、Shadow DOM 11/11、真实鼠标 shadow 选区 host true / all 4，全部通过**
 （2026-11-09，Edge 157.0.4341.42 无头模式）。
 
 脚本默认使用 `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`；
@@ -201,6 +202,7 @@ test/
 ## 已知限制
 
 - 只检索**主文档已渲染的可见文本**；同源 iframe 与开放 shadow root 已支持，跨域 iframe、closed shadow root、折叠内容、其他标签页都不在内。
+- Shadow DOM 里的真实鼠标选区依赖 Chromium 的 `ShadowRoot.getSelection()`（非标准 API）；换到其它内核可能只能处理程序设置的选区。
 - 近似兜底是**关键词覆盖**，不理解语义，也可能把不相干的句子排上来；它只是「找最像的」，不保证正确。
 - 兜底最多给 3 条，只按覆盖率排序。
 - 浏览器内置 PDF 阅读器读不到；Canvas 文档（Google Docs、腾讯文档）读不到。
