@@ -42,6 +42,7 @@
 | 键盘 | ↑ / ↓ / Enter | 切换、跳转 |
 | 近似兜底 | 整句选中 Q2（`What is the main function of ...`） | 标题变成「没有其他完全一致 · 最相近的 N 段」，每条带百分比 |
 | 拖拽浮层 | 按住面板标题栏拖动 | 面板跟着指针移动，松手停在原地 |
+| 自动刷新 | 打开 `test/fixtures/live.html`，选中第一段加粗的 `watchme`，松开鼠标后**不要点页面**，等 2 秒 | 列表从 1 条变 2、3、4 条，面板位置不动；页面下方「当前高亮」同步变大 |
 | 设置生效 | 扩展选项里关掉「按标题分组」 | 下一次选区，列表不再出现分组标题 |
 
 打开 `test/fixtures/stress.html`：
@@ -106,6 +107,7 @@ test/
   run-ext.ps1    把扩展加载进无头 Edge
   serve.js       联调用本地静态服务器
   fixtures/demo.html    英语阅读分栏演示
+  fixtures/live.html    自动刷新验证页（会自己追加文本）
   fixtures/stress.html  60 处重复压力页
 ```
 

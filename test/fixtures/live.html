@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>自动刷新验证 · 同文本检索</title>
+<style>
+  body {
+    margin: 24px;
+    max-width: 720px;
+    font: 15px/1.8 system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    color: #222;
+  }
+  h1 { font-size: 20px; margin: 0 0 12px; }
+  .hint {
+    background: #fff8e1;
+    border: 1px solid #f0e0a8;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 0 0 20px;
+    font-size: 14px;
+  }
+  .hint b { color: #8a5a00; }
+  #stage p {
+    margin: 0 0 14px;
+    padding: 8px 10px;
+    background: #fff;
+    border: 1px solid #e2ded4;
+    border-radius: 8px;
+  }
+  #seed { font-size: 17px; }
+  #status, #probe {
+    color: #777;
+    font-size: 13px;
+    margin: 4px 0;
+  }
+</style>
+</head>
+<body>
+<h1>自动刷新验证</h1>
+
+<div class="hint">
+  1. 选中第一段里<b>加粗的那个词</b>；<br>
+  2. 松开鼠标后<b>不要点击页面</b>；<br>
+  3. 等 2 秒，面板里的「找到 N 处」会自己变大，新条目会出现在列表里，面板位置不动。
+</div>
+
+<div id="stage">
+  <p id="seed">Initial line: <b>watchme</b> appears exactly once here.</p>
+</div>
+
+<p id="status">已追加 0 段</p>
+<p id="probe">当前高亮: 0</p>
+
+<script>
+  (function () {
+    var appended = 0;
+    var timer = null;
+    var stage = document.getElementById('stage');
+    var status = document.getElementById('status');
+    var probe = document.getElementById('probe');
+
+    // 第一次鼠标松开（也就是你完成选区）之后才开始追加，保证初始只有 1 处
+    document.addEventListener(
+      'mouseup',
+      function () {
+        if (timer) return;
+        timer = setInterval(function () {
+          if (appended >= 3) {
+            clearInterval(timer);
+            return;
+          }
+          appended += 1;
+          var p = document.createElement('p');
+          p.textContent = 'Auto line ' + appended + ': watchme appears again.';
+          stage.appendChild(p);
+          status.textContent = '已追加 ' + appended + ' 段';
+        }, 2000);
+      },
+      { once: true }
+    );
+
+    setInterval(function () {
+      var all = window.CSS && CSS.highlights ? CSS.highlights.get('sts-all') : null;
+      probe.textContent = '当前高亮: ' + (all ? Array.from(all).length : 0);
+    }, 500);
+
+    // 无头自测入口：live.html#auto 会自动选中目标词并触发一次 mouseup
+    if (location.hash === '#auto') {
+      setTimeout(function () {
+        var node = document.querySelector('#seed b').firstChild;
+        var range = document.createRange();
+        range.setStart(node, 0);
+        range.setEnd(node, node.nodeValue.length);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        document.dispatchEvent(
+          new MouseEvent('mouseup', { bubbles: true, clientX: 300, clientY: 200, button: 0 })
+        );
+      }, 300);
+    }
+  })();
+</script>
+</body>
+</html>
