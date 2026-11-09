@@ -164,6 +164,9 @@
       head.addEventListener('pointercancel', onDragEnd);
 
       this.listEl = el('div', 'list');
+      this.listEl.addEventListener('mouseleave', () => {
+        if (this.onHover) this.onHover(-1);
+      });
 
       const foot = el('div', 'foot');
       this.keysEl = el('span', 'keys', '↑↓ 选择 · Enter 跳转 · Esc 关闭');
@@ -220,6 +223,8 @@
       this.mode = options.mode || 'exact';
       this.onPick = options.onPick || null;
       this.onHover = options.onHover || null;
+
+      if (options.theme) this.setTheme(options.theme);
 
       const total = options.total;
       this.titleEl.textContent =
@@ -307,6 +312,13 @@
 
     setNote(text) {
       if (this.noteEl) this.noteEl.textContent = text || '';
+    }
+
+    /** 色系同步到列表里的 <mark>。 */
+    setTheme(theme) {
+      if (!this.panel || !theme) return;
+      this.panel.style.setProperty('--sts-mark', theme.mark || '');
+      this.panel.style.setProperty('--sts-mark-dark', theme.markDark || '');
     }
 
     setActive(index, scrollIntoList) {

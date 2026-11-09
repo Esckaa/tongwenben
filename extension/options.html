@@ -37,6 +37,17 @@
     </select>
   </label>
 
+  <div class="row color-row">
+    <span>
+      <b>高亮色系</b>
+      <small>浅色标出全部命中；鼠标悬停或点击列表项时变深色。深色和浅色由同一色系决定。</small>
+    </span>
+  </div>
+  <div id="palette" class="palette" role="radiogroup" aria-label="高亮色系"></div>
+  <p class="preview">
+    效果预览：这里是普通文字，<mark id="previewMark">这段是命中</mark>，鼠标移上去会变深。
+  </p>
+
   <div class="row">
     <span>
       <b>PDF 阅读器</b>
@@ -47,6 +58,7 @@
 
   <p id="status" class="status" role="status"></p>
 </main>
+<script src="src/theme.js"></script>
 <script src="src/options.js"></script>
 </body>
 </html>

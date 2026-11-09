@@ -85,6 +85,65 @@ h1 {
   background: #27496f;
 }
 
+.palette {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 4px 0 12px;
+}
+
+.swatch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border: 1px solid #e2ded4;
+  border-radius: 9px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.swatch:hover {
+  border-color: #c9c3b5;
+}
+
+.swatch.is-selected {
+  border-color: #1f3a5f;
+  box-shadow: inset 0 0 0 1px #1f3a5f;
+}
+
+.chip {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.swatch-name {
+  font-size: 13px;
+}
+
+.preview {
+  margin: 0 0 16px;
+  color: #666;
+  font-size: 13px;
+}
+
+.preview mark {
+  background: var(--preview-light, rgba(255, 214, 0, 0.38));
+  color: inherit;
+  border-radius: 3px;
+  padding: 1px 3px;
+  transition: background 0.12s ease;
+}
+
+.preview mark:hover {
+  background: var(--preview-strong, rgba(255, 122, 0, 0.78));
+}
+
 .status {
   min-height: 20px;
   margin: 8px 0 0;
@@ -114,6 +173,20 @@ h1 {
   .row select {
     background: #202124;
     border-color: #3c4043;
+  }
+
+  .swatch {
+    background: #202124;
+    border-color: #3c4043;
+  }
+
+  .swatch.is-selected {
+    border-color: #8ab4f8;
+    box-shadow: inset 0 0 0 1px #8ab4f8;
+  }
+
+  .preview {
+    color: #9aa0a6;
   }
 
   .status {

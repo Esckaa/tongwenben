@@ -22,6 +22,8 @@
 - **开放 Shadow DOM**（2026-11-09）：递归进入开放 shadow root，`<slot>` 按 `assignedNodes` 处理，避免投影内容被算两遍；影子树内单独注入 `::highlight` 样式。真实鼠标选区从 `shadowRoot.getSelection()` 读取（`document.getSelection()` 在影子树里只是镜像）。closed shadow root 仍不支持。
 - **折叠/隐藏目标提示**（2026-11-09）：跳转前检查 `<details>`、`display:none`、`visibility:hidden`；折叠内容会先展开再跳并提示，隐藏目标给出明确原因。
 - **跳转对准修复**（2026-11-09，0.5.2）：不再对命中所在的整个大元素做 `scrollIntoView`，改为按命中文字的实际矩形逐层滚动它所在的滚动容器；修掉长文档里点结果却滚到题目区的问题。
+- **全部浅色 + 页面悬停加深**（2026-11-09，0.6.0）：所有命中用当前色系的浅色标出；鼠标移到页面上某一处命中，该处变深色，移开恢复。列表不跟随滚动。
+- **6 套高亮色系**（2026-11-09，0.6.0）：设置页可选琥珀/绿/蓝/紫/粉/青，每个色系自动给出浅色与深色，网页、iframe、Shadow DOM 与列表 `<mark>` 同步。
 
 ## 安装
 
@@ -49,6 +51,8 @@
 | 近似兜底 | 整句选中 Q2（`What is the main function of ...`） | 标题变成「没有其他完全一致 · 最相近的 N 段」，每条带百分比 |
 | 拖拽浮层 | 按住面板标题栏拖动 | 面板跟着指针移动，松手停在原地 |
 | 自动刷新 | 打开 `test/fixtures/live.html`，选中第一段加粗的 `watchme`，松开鼠标后**不要点页面**，等 2 秒 | 列表从 1 条变 2、3、4 条，面板位置不动；页面下方「当前高亮」同步变大 |
+| 页面悬停 | 选一个出现多次的词，鼠标移到页面上另一处命中 | 该处变深，上一处恢复浅色；列表不滚动 |
+| 色系 | 扩展选项选「蓝色」 | 下次选区，网页高亮和列表 `mark` 都变蓝 |
 
 ### PDF 阅读器
 
@@ -152,7 +156,14 @@ node test/jump-cdp.js
 
 它先把内层滚动区拉到 2600，再点上方文章里的命中；断言目标最终进入视口。
 
-当前结果：**32/32、20/20、扩展环境 HOST YES / ALL 3、PDF 阅读器 1 页 / 1 文字层 / 命中 1 处、同源 iframe 7/7 且扩展环境 top 1 / frame 2、Shadow DOM 11/11、真实鼠标 shadow 选区 host true / all 4、跳转回归 1/1，全部通过**
+悬停与色系、设置页色板：
+
+```powershell
+node test/hover-cdp.js     # 页面悬停加深 + 蓝色样式注入
+node test/options-cdp.js   # 6 个色系、写入 storage、预览同步
+```
+
+当前结果：**36/36、20/20、扩展环境 HOST YES / ALL 3、PDF 阅读器 1 页 / 1 文字层 / 命中 1 处、同源 iframe 7/7 且扩展环境 top 1 / frame 2、Shadow DOM 11/11、真实鼠标 shadow 选区 host true / all 4、跳转回归 1/1、悬停/色系 1/1、设置页色板 1/1，全部通过**
 （2026-11-09，Edge 157.0.4341.42 无头模式）。
 
 脚本默认使用 `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`；
@@ -169,7 +180,8 @@ extension/
     textmap.js    文本索引：DOM -> 虚拟字符串 + 偏移映射 + 标题位置
     search.js     归一化（空白/大小写/全半角/弯引号）+ 精确查找
     fallback.js   近似兜底：关键词覆盖 + 句子级排序
-    highlight.js  CSS Custom Highlight API 封装
+    theme.js      6 套色系（浅色/深色/列表 mark）
+    highlight.js  CSS Custom Highlight API 封装（按根注入、可换色）
     popup.js      Shadow DOM 浮层（可拖拽、分组、相似度角标）
     content.js    选区监听、索引缓存、跳转、Esc 状态机、设置同步
     options.js    设置读写
@@ -190,6 +202,8 @@ test/
   pdf-cdp.js     PDF 阅读器自测（HTTP 模式）
   pdf-ext-cdp.js PDF 阅读器自测（真实扩展页）
   jump-cdp.js    跳转回归（大容器 + 内层滚动）
+  hover-cdp.js   页面悬停加深 + 色系注入
+  options-cdp.js 设置页色板与 storage
   frames-e2e.html 同源 iframe 端到端页
   frames-e2e.js
   frames-cdp.js    同源 iframe 自测（页面模式）
@@ -205,6 +219,7 @@ test/
   fixtures/sample-src.html 生成 sample.pdf 的源
   fixtures/sample.pdf      1 页测试 PDF
   fixtures/jump.html       跳转回归页（大容器 + 内层滚动）
+  fixtures/hover.html      页面悬停回归页
   fixtures/frames.html     同源 iframe 演示
   fixtures/frame-src.html  iframe 子页面
   fixtures/shadow.html     Shadow DOM 演示
@@ -214,6 +229,9 @@ test/
 
 - 只检索**主文档已渲染的可见文本**；同源 iframe 与开放 shadow root 已支持，跨域 iframe、closed shadow root、折叠内容、其他标签页都不在内。
 - Shadow DOM 里的真实鼠标选区依赖 Chromium 的 `ShadowRoot.getSelection()`（非标准 API）；换到其它内核可能只能处理程序设置的选区。
+- Shadow DOM 里的**页面悬停**未验证：`caretPositionFromPoint` 不保证穿透影子树；列表悬停仍有效。
+- 页面悬停只在浮层打开时生效；高亮上限 600 处。
+- 色系是 6 套固定预设，不支持自定义取色；深色模式使用各自的透明度。
 - 近似兜底是**关键词覆盖**，不理解语义，也可能把不相干的句子排上来；它只是「找最像的」，不保证正确。
 - 兜底最多给 3 条，只按覆盖率排序。
 - 浏览器内置 PDF 阅读器读不到；Canvas 文档（Google Docs、腾讯文档）读不到。

@@ -30,7 +30,7 @@
   const MOUSE_DEBOUNCE = 140;
   const KEY_DEBOUNCE = 320;
 
-  const DEFAULTS = { fallback: true, groupByHeading: true, maxShow: 100 };
+  const DEFAULTS = { fallback: true, groupByHeading: true, maxShow: 100, accent: 'amber' };
 
   const highlighter = new STS.Highlighter();
   const popup = new STS.Popup();
@@ -48,6 +48,14 @@
   let lastSig = '';
   let refreshTimer = 0;
 
+  // 悬停/选中状态：页面悬停 > 列表悬停 > 点击选中
+  let hoverBoxes = [];
+  let pageHoverRange = null;
+  let listHoverRange = null;
+  let selectedRange = null;
+  let hoverPoint = null;
+  let hoverFrame = 0;
+
   const watchedDocs = new WeakSet();
   const observedDocs = new WeakSet();
 
@@ -61,6 +69,7 @@
     try {
       chrome.storage.sync.get(DEFAULTS, (value) => {
         settings = Object.assign({}, DEFAULTS, value || {});
+        applyTheme();
       });
 
       chrome.storage.onChanged.addListener((changes, area) => {
@@ -68,6 +77,7 @@
         for (const key of Object.keys(changes)) {
           settings[key] = changes[key].newValue;
         }
+        if (changes.accent) applyTheme();
       });
     } catch (err) {
       // 扩展环境外（自测页）忽略
@@ -75,6 +85,14 @@
   }
 
   loadSettings();
+
+  function applyTheme() {
+    if (!STS.Theme) return null;
+    const theme = STS.Theme.get(settings.accent || 'amber');
+    highlighter.setTheme(theme);
+    if (popup.isOpen()) popup.setTheme(theme);
+    return theme;
+  }
 
   /* ---------- 跨 document 工具 ---------- */
 
@@ -125,6 +143,9 @@
           text: TextMap.sliceRaw(built, h.start, h.end).replace(/\s+/g, ' ').trim().slice(0, 40)
         }))
         .filter((h) => h.text);
+
+      built.segByNode = new Map();
+      for (const seg of built.segs) built.segByNode.set(seg.node, seg);
 
       map = built;
       mapDirty = false;
@@ -449,6 +470,16 @@
     lastSig = '';
     clearTimeout(refreshTimer);
 
+    hoverBoxes = [];
+    pageHoverRange = null;
+    listHoverRange = null;
+    selectedRange = null;
+    hoverPoint = null;
+    if (hoverFrame) {
+      cancelAnimationFrame(hoverFrame);
+      hoverFrame = 0;
+    }
+
     for (const pending of timers.values()) clearTimeout(pending);
     timers.clear();
   }
@@ -458,6 +489,9 @@
       restoreScroll(originScroll);
       highlighter.setActive(null);
       jumped = false;
+      selectedRange = null;
+      pageHoverRange = null;
+      listHoverRange = null;
       popup.setNote('');
       return;
     }
@@ -474,6 +508,106 @@
       const snapshot = currentSearch;
       executeSearch(snapshot.raw, snapshot.pointer, snapshot.selRange, true);
     }, 450);
+  }
+
+  /* ---------- 页面悬停 ---------- */
+
+  function refreshActive() {
+    highlighter.setActive(pageHoverRange || listHoverRange || selectedRange);
+  }
+
+  function boxAt(offset) {
+    let lo = 0;
+    let hi = hoverBoxes.length - 1;
+
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      const box = hoverBoxes[mid];
+      if (offset < box.start) hi = mid - 1;
+      else if (offset >= box.end) lo = mid + 1;
+      else return box;
+    }
+
+    return null;
+  }
+
+  function setPageHover(range) {
+    if (range === pageHoverRange) return;
+    pageHoverRange = range;
+    refreshActive();
+  }
+
+  function processHover() {
+    hoverFrame = 0;
+    if (!popup.isOpen() || !hoverPoint || !map || !map.segByNode) return;
+
+    const { doc, x, y } = hoverPoint;
+    let node = null;
+    let offset = 0;
+
+    try {
+      if (doc.caretPositionFromPoint) {
+        const pos = doc.caretPositionFromPoint(x, y);
+        if (pos) {
+          node = pos.offsetNode;
+          offset = pos.offset;
+        }
+      } else if (doc.caretRangeFromPoint) {
+        const range = doc.caretRangeFromPoint(x, y);
+        if (range) {
+          node = range.startContainer;
+          offset = range.startOffset;
+        }
+      }
+    } catch (err) {
+      node = null;
+    }
+
+    if (!node || node.nodeType !== 3) {
+      setPageHover(null);
+      return;
+    }
+
+    const seg = map.segByNode.get(node);
+    if (!seg) {
+      setPageHover(null);
+      return;
+    }
+
+    const global = seg.start + Math.min(offset, node.nodeValue.length);
+    const box = boxAt(global);
+    if (!box) {
+      setPageHover(null);
+      return;
+    }
+
+    // 光标位置可能落在附近的文字上，确认指针真的在某一段命中矩形里
+    let inside = false;
+    try {
+      for (const rect of box.range.getClientRects()) {
+        if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+          inside = true;
+          break;
+        }
+      }
+    } catch (err) {
+      inside = false;
+    }
+
+    setPageHover(inside ? box.range : null);
+  }
+
+  function onHoverMove(e, doc) {
+    if (!popup.isOpen() || !hoverBoxes.length) return;
+
+    if (isOurEvent(e)) {
+      setPageHover(null);
+      return;
+    }
+
+    hoverPoint = { doc, x: e.clientX, y: e.clientY };
+    if (hoverFrame) return;
+    hoverFrame = requestAnimationFrame(processHover);
   }
 
   /* ---------- 摘要 ---------- */
@@ -499,23 +633,30 @@
 
   /* ---------- 主流程 ---------- */
 
-  function buildExactItems(textMap, hits, maxShow) {
+  function buildExactMatch(textMap, hits, maxShow) {
     const items = [];
+    const ranges = [];
+    const boxes = [];
 
-    for (let i = 0; i < hits.length && items.length < maxShow; i += 1) {
+    for (let i = 0; i < hits.length && ranges.length < MAX_HIGHLIGHT; i += 1) {
       const hit = hits[i];
       const rawRange = Search.toRawRange(textMap, hit);
       const r = TextMap.rangeFor(textMap, rawRange.start, rawRange.end);
       if (!r) continue;
 
-      items.push({
-        ...snippetOf(textMap, rawRange.start, rawRange.end),
-        range: r,
-        group: groupOf(textMap, rawRange.start)
-      });
+      ranges.push(r);
+      boxes.push({ start: rawRange.start, end: rawRange.end, range: r });
+
+      if (items.length < maxShow) {
+        items.push({
+          ...snippetOf(textMap, rawRange.start, rawRange.end),
+          range: r,
+          group: groupOf(textMap, rawRange.start)
+        });
+      }
     }
 
-    return items;
+    return { items, ranges, boxes };
   }
 
   function executeSearch(raw, pointer, selRange, keepPosition) {
@@ -538,12 +679,17 @@
 
     let mode = 'exact';
     let items = [];
+    let ranges = [];
+    let boxes = [];
     let total = hits.length;
     let capped = false;
 
     if (hits.length && !selfOnly) {
       capped = hits.length >= MAX_SCAN;
-      items = buildExactItems(m, hits, maxShow);
+      const built = buildExactMatch(m, hits, maxShow);
+      items = built.items;
+      ranges = built.ranges;
+      boxes = built.boxes;
     } else if (settings.fallback !== false && STS.Fallback) {
       // 多取几个，先剔掉选区自己那句，再截到 3 条；否则题干会白占一个名额
       const fb = STS.Fallback.find(m, raw, 8);
@@ -558,12 +704,24 @@
           ...item,
           group: groupOf(m, item.rawStart)
         }));
+        ranges = fbItems.map((item) => item.range);
+        boxes = fbItems.map((item) => ({
+          start: item.rawStart,
+          end: item.rawEnd,
+          range: item.range
+        }));
       } else if (selfOnly) {
         // 兜底也给不出别的，就把选区自己这一处还回来
-        items = buildExactItems(m, hits, maxShow);
+        const built = buildExactMatch(m, hits, maxShow);
+        items = built.items;
+        ranges = built.ranges;
+        boxes = built.boxes;
       }
     } else if (selfOnly) {
-      items = buildExactItems(m, hits, maxShow);
+      const built = buildExactMatch(m, hits, maxShow);
+      items = built.items;
+      ranges = built.ranges;
+      boxes = built.boxes;
     }
 
     let x = pointer ? pointer.x : window.innerWidth / 2;
@@ -580,6 +738,11 @@
     if (!items.length) {
       highlighter.clear();
       highlighter.setActive(null);
+      hoverBoxes = [];
+      pageHoverRange = null;
+      listHoverRange = null;
+      selectedRange = null;
+      hoverPoint = null;
       if (!keepPosition) {
         originScroll = null;
         jumped = false;
@@ -594,6 +757,8 @@
       '|' +
       total +
       '|' +
+      ranges.length +
+      '|' +
       (capped ? 'c' : '') +
       '|' +
       items.map((item) => item.hit).join('\u0001');
@@ -607,8 +772,14 @@
       jumped = false;
     }
 
+    hoverBoxes = boxes.slice().sort((a, b) => a.start - b.start);
+    pageHoverRange = null;
+    listHoverRange = null;
+    selectedRange = null;
+    hoverPoint = null;
+
     highlighter.setActive(null);
-    highlighter.setAll(items.slice(0, MAX_HIGHLIGHT).map((item) => item.range));
+    highlighter.setAll(ranges);
 
     popup.openPanel({
       mode,
@@ -616,18 +787,22 @@
       total: capped ? MAX_SCAN + '+' : String(total),
       capped,
       grouped: settings.groupByHeading,
+      theme: STS.Theme ? STS.Theme.get(settings.accent || 'amber') : null,
       items,
       x,
       y,
       keepPosition,
       onHover: (index) => {
-        if (index >= 0 && items[index]) highlighter.setActive(items[index].range);
-        else highlighter.setActive(null);
+        listHoverRange = index >= 0 && items[index] ? items[index].range : null;
+        refreshActive();
       },
       onPick: (index) => {
         const item = items[index];
         if (!item) return;
-        highlighter.setActive(item.range);
+        selectedRange = item.range;
+        pageHoverRange = null;
+        listHoverRange = null;
+        highlighter.setActive(selectedRange);
         jumped = true;
         const result = jumpTo(item.range);
         if (!result.ok) popup.setNote(result.note || '目标当前不可见');
@@ -869,6 +1044,7 @@
 
     doc.addEventListener('mouseup', (e) => onMouseUp(e, doc), true);
     doc.addEventListener('mousedown', (e) => onMouseDown(e, doc), true);
+    doc.addEventListener('mousemove', (e) => onHoverMove(e, doc), { capture: true, passive: true });
     doc.addEventListener('selectionchange', () => onSelectionChange(doc));
     doc.addEventListener('keydown', (e) => onKeyDown(e, doc), true);
 

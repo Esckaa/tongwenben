@@ -135,6 +135,32 @@
     fb.items[0] && fb.items[0].range.toString()
   );
 
+  /* 14. 色系数据 */
+  check(
+    'theme-presets',
+    !!(window.STS && STS.Theme && Object.keys(STS.Theme.PRESETS).length === 6),
+    window.STS && STS.Theme ? Object.keys(STS.Theme.PRESETS).join(',') : 'missing'
+  );
+  check(
+    'theme-default',
+    !!(window.STS && STS.Theme && STS.Theme.get('nope') === STS.Theme.PRESETS.amber),
+    'fallback amber'
+  );
+  check(
+    'theme-blue',
+    !!(window.STS && STS.Theme && STS.Theme.get('blue').light.indexOf('80, 170, 255') !== -1),
+    window.STS && STS.Theme ? STS.Theme.get('blue').light : 'missing'
+  );
+  check(
+    'theme-css',
+    !!(
+      window.STS &&
+      STS.Theme &&
+      STS.Theme.css(STS.Theme.get('green')).indexOf('76, 217, 100') !== -1
+    ),
+    'green css'
+  );
+
   /* 输出 */
   const out = document.getElementById('out');
   const lines = results.map((r) =>

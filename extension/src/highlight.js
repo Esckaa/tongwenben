@@ -3,21 +3,20 @@
  * 使用 CSS Custom Highlight API：只登记 Range，不往页面里插节点。
  * Range 可能属于顶层、同源 iframe、或开放 shadow root：
  *   - 注册表按 document 分组（CSS.highlights 是 document 级的）；
- *   - ::highlight 样式要注入到 Range 所在的根（iframe document / shadow root），
- *     否则影子树里的文字不会被染色。
+ *   - ::highlight 样式要注入到 Range 所在的根（document / iframe document / shadow root），
+ *     否则不会染色；换色时直接 replaceSync 已注入的样式表。
  */
 (function (global) {
   'use strict';
 
   const STS = (global.STS = global.STS || {});
 
-  const STYLE =
-    '::highlight(sts-all){background-color:rgba(255,214,0,.42);}' +
-    '::highlight(sts-active){background-color:rgba(255,120,0,.78);}' +
-    '@media (prefers-color-scheme:dark){' +
-    '::highlight(sts-all){background-color:rgba(255,196,0,.32);}' +
-    '::highlight(sts-active){background-color:rgba(255,132,0,.7);}' +
-    '}';
+  const DEFAULT_THEME = {
+    light: 'rgba(255, 214, 0, 0.38)',
+    lightDark: 'rgba(255, 196, 0, 0.30)',
+    strong: 'rgba(255, 122, 0, 0.78)',
+    strongDark: 'rgba(255, 140, 0, 0.72)'
+  };
 
   class Highlighter {
     constructor() {
@@ -25,6 +24,9 @@
       this.activeName = 'sts-active';
       this.docs = new Set();
       this.activeDoc = null;
+      this.styledRoots = new Set();
+      this.theme =
+        (STS.Theme && STS.Theme.get('amber')) || DEFAULT_THEME;
     }
 
     supportedIn(doc) {
@@ -36,32 +38,96 @@
       return this.supportedIn(document);
     }
 
-    /** root 可以是 Document 或 ShadowRoot。 */
+    cssText() {
+      if (STS.Theme) return STS.Theme.css(this.theme);
+      const t = this.theme;
+      return (
+        '::highlight(sts-all){background-color:' + t.light + ' !important;}' +
+        '::highlight(sts-active){background-color:' + t.strong + ' !important;}' +
+        '@media (prefers-color-scheme:dark){' +
+        '::highlight(sts-all){background-color:' + t.lightDark + ' !important;}' +
+        '::highlight(sts-active){background-color:' + t.strongDark + ' !important;}' +
+        '}'
+      );
+    }
+
+    /** root 可以是 Document 或 ShadowRoot；顶层也要注入，才能跟随色系。 */
     ensureStyle(root) {
-      if (!root || root === document) return; // 顶层由扩展的 page.css 负责
-      if (root.__stsHighlightStyle) return;
+      if (!root) return;
 
       const doc = root.ownerDocument || root;
       const win = doc && doc.defaultView;
+      const css = this.cssText();
+
+      if (root.__stsSheet) {
+        if (root.__stsCss !== css) {
+          try {
+            root.__stsSheet.replaceSync(css);
+            root.__stsCss = css;
+          } catch (err) {
+            // 样式表已失效，下面重建
+            root.__stsSheet = null;
+          }
+        }
+        this.styledRoots.add(root);
+        return;
+      }
+
+      if (root.__stsStyle) {
+        if (root.__stsCss !== css) {
+          root.__stsStyle.textContent = css;
+          root.__stsCss = css;
+        }
+        this.styledRoots.add(root);
+        return;
+      }
 
       try {
-        if (!win || typeof win.CSSStyleSheet !== 'function') return;
+        if (!win || typeof win.CSSStyleSheet !== 'function') throw new Error('no CSSStyleSheet');
         const sheet = new win.CSSStyleSheet();
-        sheet.replaceSync(STYLE);
+        sheet.replaceSync(css);
         root.adoptedStyleSheets = Array.from(root.adoptedStyleSheets || []).concat(sheet);
-        root.__stsHighlightStyle = true;
+        root.__stsSheet = sheet;
+        root.__stsCss = css;
+        this.styledRoots.add(root);
       } catch (err) {
         try {
           const style = doc.createElement('style');
-          style.textContent = STYLE;
+          style.textContent = css;
           if (root.nodeType === 9) {
             (root.head || root.documentElement).appendChild(style);
           } else {
             root.appendChild(style);
           }
-          root.__stsHighlightStyle = true;
+          root.__stsStyle = style;
+          root.__stsCss = css;
+          this.styledRoots.add(root);
         } catch (err2) {
-          // 站点 CSP 拦住时只能放弃这一层的视觉高亮
+          // 站点 CSP 拦住时只能保留 page.css 的默认色
+        }
+      }
+    }
+
+    /** 切换色系：更新所有已经注入过样式的根。 */
+    setTheme(theme) {
+      const next =
+        typeof theme === 'string' && STS.Theme ? STS.Theme.get(theme) : theme;
+      if (!next) return;
+
+      this.theme = next;
+      const css = this.cssText();
+
+      for (const root of this.styledRoots) {
+        if (root.__stsSheet) {
+          try {
+            root.__stsSheet.replaceSync(css);
+            root.__stsCss = css;
+          } catch (err) {
+            // 忽略单个根
+          }
+        } else if (root.__stsStyle) {
+          root.__stsStyle.textContent = css;
+          root.__stsCss = css;
         }
       }
     }
