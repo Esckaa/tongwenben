@@ -33,6 +33,9 @@
   let lastAt = 0;
   let originScroll = null;
   let jumped = false;
+  let currentSearch = null;
+  let lastSig = '';
+  let refreshTimer = 0;
 
   if (!highlighter.supported) {
     console.warn('[STS] 当前浏览器不支持 CSS Custom Highlight API，高亮将不可用');
@@ -187,6 +190,21 @@
     originScroll = null;
     jumped = false;
     lastKey = '';
+    currentSearch = null;
+    lastSig = '';
+    clearTimeout(refreshTimer);
+  }
+
+  /** 页面变化后，若面板还开着，防抖重算一次并原地更新。 */
+  function scheduleRefresh() {
+    if (!popup.isOpen() || !currentSearch) return;
+
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(() => {
+      if (!popup.isOpen() || !currentSearch) return;
+      const snapshot = currentSearch;
+      executeSearch(snapshot.raw, snapshot.pointer, snapshot.selRange, true);
+    }, 450);
   }
 
   function onEscape() {
@@ -242,6 +260,122 @@
     return items;
   }
 
+  function executeSearch(raw, pointer, selRange, keepPosition) {
+    const needle = Search.normalizeNeedle(raw);
+    if (!needle) return;
+
+    currentSearch = { raw, pointer, selRange };
+
+    const m = getMap();
+    const maxShow = Math.min(500, Math.max(10, Number(settings.maxShow) || 100));
+    const hits = Search.findExact(m, needle, MAX_SCAN);
+
+    // 只命中选区自己，对「题干找原文」没有意义；先记下，看兜底能不能给出别的
+    let selfOnly = false;
+    if (hits.length === 1 && selRange) {
+      const only = Search.toRawRange(m, hits[0]);
+      const onlyRange = TextMap.rangeFor(m, only.start, only.end);
+      selfOnly = !!(onlyRange && isSelfHit(selRange, onlyRange));
+    }
+
+    let mode = 'exact';
+    let items = [];
+    let total = hits.length;
+    let capped = false;
+
+    if (hits.length && !selfOnly) {
+      capped = hits.length >= MAX_SCAN;
+      items = buildExactItems(m, hits, maxShow);
+    } else if (settings.fallback !== false && STS.Fallback) {
+      // 多取几个，先剔掉选区自己那句，再截到 3 条；否则题干会白占一个名额
+      const fb = STS.Fallback.find(m, raw, 8);
+      const fbItems = fb.items
+        .filter((item) => !(item.range && selRange && isSelfHit(selRange, item.range)))
+        .slice(0, 3);
+
+      if (fbItems.length) {
+        mode = 'fallback';
+        total = fbItems.length;
+        items = fbItems.map((item) => ({
+          ...item,
+          group: groupOf(m, item.rawStart)
+        }));
+      } else if (selfOnly) {
+        // 兜底也给不出别的，就把选区自己这一处还回来
+        items = buildExactItems(m, hits, maxShow);
+      }
+    } else if (selfOnly) {
+      items = buildExactItems(m, hits, maxShow);
+    }
+
+    let x = pointer ? pointer.x : window.innerWidth / 2;
+    let y = pointer ? pointer.y : window.innerHeight / 2;
+    if (!pointer && selRange) {
+      const rect = selRange.getBoundingClientRect();
+      if (rect && (rect.width || rect.height)) {
+        x = rect.right;
+        y = rect.bottom;
+      }
+    }
+
+    if (!items.length) {
+      highlighter.clear();
+      highlighter.setActive(null);
+      if (!keepPosition) {
+        originScroll = null;
+        jumped = false;
+      }
+      lastSig = 'empty';
+      popup.showEmpty({ needle: raw.trim(), x, y, keepPosition });
+      return;
+    }
+
+    const sig =
+      mode +
+      '|' +
+      total +
+      '|' +
+      (capped ? 'c' : '') +
+      '|' +
+      items.map((item) => item.hit).join('\u0001');
+
+    // 页面变化触发的重绘：结果没变就不动面板，避免闪烁
+    if (keepPosition && sig === lastSig) return;
+    lastSig = sig;
+
+    if (!keepPosition) {
+      originScroll = captureScroll(selRange ? elementOf(selRange.startContainer) : null);
+      jumped = false;
+    }
+
+    highlighter.setActive(null);
+    highlighter.setAll(items.slice(0, MAX_HIGHLIGHT).map((item) => item.range));
+
+    popup.openPanel({
+      mode,
+      needle: raw.trim(),
+      total: capped ? MAX_SCAN + '+' : String(total),
+      capped,
+      grouped: settings.groupByHeading,
+      items,
+      x,
+      y,
+      keepPosition,
+      onHover: (index) => {
+        if (index >= 0 && items[index]) highlighter.setActive(items[index].range);
+        else highlighter.setActive(null);
+      },
+      onPick: (index) => {
+        const item = items[index];
+        if (!item) return;
+        highlighter.setActive(item.range);
+        jumped = true;
+        const ok = jumpTo(item.range);
+        if (!ok) popup.setNote('目标当前不可见（可能被折叠或隐藏）');
+      }
+    });
+  }
+
   function run() {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
@@ -267,91 +401,7 @@
     lastKey = key;
     lastAt = Date.now();
 
-    const m = getMap();
-    const maxShow = Math.min(500, Math.max(10, Number(settings.maxShow) || 100));
-    const hits = Search.findExact(m, needle, MAX_SCAN);
-
-    // 只命中选区自己，对「题干找原文」没有意义；先记下，看兜底能不能给出别的
-    let selfOnly = false;
-    if (hits.length === 1) {
-      const only = Search.toRawRange(m, hits[0]);
-      const onlyRange = TextMap.rangeFor(m, only.start, only.end);
-      selfOnly = !!(onlyRange && isSelfHit(range, onlyRange));
-    }
-
-    let mode = 'exact';
-    let items = [];
-    let total = hits.length;
-    let capped = false;
-
-    if (hits.length && !selfOnly) {
-      capped = hits.length >= MAX_SCAN;
-      items = buildExactItems(m, hits, maxShow);
-    } else if (settings.fallback !== false && STS.Fallback) {
-      // 多取几个，先剔掉选区自己那句，再截到 3 条；否则题干会白占一个名额
-      const fb = STS.Fallback.find(m, raw, 8);
-      const fbItems = fb.items
-        .filter((item) => !(item.range && isSelfHit(range, item.range)))
-        .slice(0, 3);
-
-      if (fbItems.length) {
-        mode = 'fallback';
-        total = fbItems.length;
-        items = fbItems.map((item) => ({
-          ...item,
-          group: groupOf(m, item.rawStart)
-        }));
-      } else if (selfOnly) {
-        // 兜底也给不出别的，就把选区自己这一处还回来
-        items = buildExactItems(m, hits, maxShow);
-      }
-    } else if (selfOnly) {
-      items = buildExactItems(m, hits, maxShow);
-    }
-
-    if (!items.length) {
-      highlighter.clear();
-      originScroll = null;
-      jumped = false;
-      popup.showEmpty({
-        needle: raw.trim(),
-        x: pointer ? pointer.x : window.innerWidth / 2,
-        y: pointer ? pointer.y : window.innerHeight / 2
-      });
-      return;
-    }
-
-    const anchorEl = elementOf(sel.anchorNode);
-    originScroll = captureScroll(anchorEl);
-    jumped = false;
-
-    highlighter.setAll(items.slice(0, MAX_HIGHLIGHT).map((item) => item.range));
-
-    const x = pointer ? pointer.x : range.getBoundingClientRect().right;
-    const y = pointer ? pointer.y : range.getBoundingClientRect().bottom;
-
-    popup.openPanel({
-      mode,
-      needle: raw.trim(),
-      total: capped ? MAX_SCAN + '+' : String(total),
-      capped,
-      grouped: settings.groupByHeading,
-      items,
-      x,
-      y,
-      onHover: (index) => {
-        if (index >= 0 && items[index]) highlighter.setActive(items[index].range);
-        else highlighter.setActive(null);
-      },
-      onPick: (index) => {
-        const item = items[index];
-        if (!item) return;
-        highlighter.setActive(item.range);
-        jumped = true;
-        const ok = jumpTo(item.range);
-        if (!ok) popup.setNote('目标当前不可见（可能被折叠或隐藏）');
-      }
-    });
+    executeSearch(raw, pointer, range, false);
   }
 
   function schedule(ms) {
@@ -451,6 +501,7 @@
       }
 
       mapDirty = true;
+      scheduleRefresh();
       return;
     }
   });

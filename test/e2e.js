@@ -165,10 +165,44 @@
         } catch (err) {
           ok('e2e-phase4', false, err && err.message);
         }
-        done();
+        phase5();
       }, 900);
     } catch (err) {
       ok('e2e-phase4-setup', false, err && err.message);
+      done();
+    }
+  }
+
+  function phase5() {
+    try {
+      // 面板开着时往页面里追加一段相同文本，索引应在防抖后自动重建并原地刷新
+      const host = document.querySelector('[data-sts-host]');
+      const before = host ? host.style.left + '|' + host.style.top : '';
+
+      const p = document.createElement('p');
+      p.id = 'p6';
+      p.textContent = 'Another paragraph appears here.';
+      document.body.appendChild(p);
+
+      setTimeout(() => {
+        try {
+          const dbg = window.__STS_DEBUG__;
+          ok(
+            'auto-refresh-items',
+            !!(dbg && dbg.popup.items.length === 2),
+            dbg && dbg.popup.items.length
+          );
+
+          const now = document.querySelector('[data-sts-host]');
+          const after = now ? now.style.left + '|' + now.style.top : '';
+          ok('auto-refresh-position', !!now && before === after, before + ' -> ' + after);
+        } catch (err) {
+          ok('e2e-phase5', false, err && err.message);
+        }
+        done();
+      }, 900);
+    } catch (err) {
+      ok('e2e-phase5-setup', false, err && err.message);
       done();
     }
   }

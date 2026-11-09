@@ -277,7 +277,7 @@
       });
 
       this.listEl.appendChild(frag);
-      this.position(options.x, options.y);
+      if (!options.keepPosition) this.position(options.x, options.y);
     }
 
     showEmpty(options) {
@@ -302,7 +302,7 @@
       box.append(p1, p2);
       this.listEl.appendChild(box);
 
-      this.position(options.x, options.y);
+      if (!options.keepPosition) this.position(options.x, options.y);
     }
 
     setNote(text) {
