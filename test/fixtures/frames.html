@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Iframe 测试 · 顶层</title>
+<style>
+  body {
+    margin: 24px;
+    max-width: 900px;
+    font: 15px/1.8 system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    color: #222;
+  }
+  h1 { font-size: 20px; margin: 0 0 12px; }
+  .hint {
+    background: #fff8e1;
+    border: 1px solid #f0e0a8;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 0 0 18px;
+    font-size: 14px;
+  }
+  iframe {
+    width: 640px;
+    max-width: 100%;
+    height: 240px;
+    border: 1px solid #d8d3c8;
+    border-radius: 8px;
+    background: #fff;
+  }
+</style>
+</head>
+<body>
+<h1>同源 iframe 测试</h1>
+
+<div class="hint">
+  1. 在下方 iframe 里选中加粗的目标短语；<br>
+  2. 面板应显示 3 处：顶层 1 处 + iframe 里 2 处；<br>
+  3. 点 iframe 里的条目，应滚到 iframe 内对应位置。
+</div>
+
+<p>Top level: iframe needle once, outside the frame.</p>
+
+<iframe id="frame" src="frame-src.html" title="子页面"></iframe>
+
+</body>
+</html>

@@ -1,6 +1,7 @@
 /* 同文本检索 · 内容脚本
  *
  * 串起：选区监听 -> 文本索引 -> 归一化查找 -> 全页高亮 -> 浮层 -> 跳转。
+ * 同源 iframe 会被并入同一份索引：事件按 document 监听，高亮按 document 注册。
  * 零结果时按设置走近似兜底。
  */
 (function () {
@@ -28,6 +29,7 @@
   let map = null;
   let mapDirty = true;
   let timer = 0;
+  let pendingDoc = document;
   let lastPointer = null;
   let lastKey = '';
   let lastAt = 0;
@@ -36,6 +38,9 @@
   let currentSearch = null;
   let lastSig = '';
   let refreshTimer = 0;
+
+  const watchedDocs = new WeakSet();
+  const observedDocs = new WeakSet();
 
   if (!highlighter.supported) {
     console.warn('[STS] 当前浏览器不支持 CSS Custom Highlight API，高亮将不可用');
@@ -62,6 +67,31 @@
 
   loadSettings();
 
+  /* ---------- 跨 document 工具 ---------- */
+
+  function elementOf(node) {
+    if (!node) return null;
+    return node.nodeType === 1 ? node : node.parentElement;
+  }
+
+  /** iframe 内的坐标 -> 顶层视口坐标 */
+  function toTopPoint(doc, x, y) {
+    let win = doc && doc.defaultView;
+    let px = x;
+    let py = y;
+
+    while (win && win !== window) {
+      const frame = win.frameElement;
+      if (!frame) break;
+      const rect = frame.getBoundingClientRect();
+      px += rect.left + (frame.clientLeft || 0);
+      py += rect.top + (frame.clientTop || 0);
+      win = frame.ownerDocument.defaultView;
+    }
+
+    return { x: px, y: py };
+  }
+
   /* ---------- 索引 ---------- */
 
   function getMap() {
@@ -80,6 +110,7 @@
 
       map = built;
       mapDirty = false;
+      watchMapDocs(map);
     }
     return map;
   }
@@ -95,11 +126,6 @@
   }
 
   /* ---------- 选区校验 ---------- */
-
-  function elementOf(node) {
-    if (!node) return null;
-    return node.nodeType === 1 ? node : node.parentElement;
-  }
 
   function isEditable(node) {
     const el = elementOf(node);
@@ -131,16 +157,42 @@
   /* ---------- 滚动位置 ---------- */
 
   function captureScroll(startEl) {
-    const list = [{ el: null, top: window.scrollY, left: window.scrollX }];
+    const list = [];
+    let doc = startEl ? startEl.ownerDocument : document;
     let node = startEl;
 
-    while (node && node !== document.body && node !== document.documentElement) {
-      const cs = getComputedStyle(node);
+    while (node && node !== doc.body && node !== doc.documentElement) {
+      const win = doc.defaultView;
+      const cs = win.getComputedStyle(node);
       const scrollable = /(auto|scroll|overlay)/.test(cs.overflowY);
       if (scrollable && node.scrollHeight > node.clientHeight + 1) {
         list.push({ el: node, top: node.scrollTop, left: node.scrollLeft });
       }
       node = node.parentElement;
+    }
+
+    let win = doc.defaultView;
+    while (win) {
+      list.push({ win, top: win.scrollY, left: win.scrollX });
+      if (win === window) break;
+
+      const frame = win.frameElement;
+      if (!frame) break;
+
+      const parentDoc = frame.ownerDocument;
+      let parent = frame.parentElement;
+      while (parent && parent !== parentDoc.body) {
+        const pcs = parentDoc.defaultView.getComputedStyle(parent);
+        if (
+          /(auto|scroll|overlay)/.test(pcs.overflowY) &&
+          parent.scrollHeight > parent.clientHeight + 1
+        ) {
+          list.push({ el: parent, top: parent.scrollTop, left: parent.scrollLeft });
+        }
+        parent = parent.parentElement;
+      }
+
+      win = parentDoc.defaultView;
     }
 
     return list;
@@ -152,8 +204,8 @@
       if (item.el) {
         item.el.scrollTop = item.top;
         item.el.scrollLeft = item.left;
-      } else {
-        window.scrollTo(item.left, item.top);
+      } else if (item.win) {
+        item.win.scrollTo(item.left, item.top);
       }
     }
   }
@@ -161,6 +213,7 @@
   /* ---------- 跳转 ---------- */
 
   function jumpTo(range) {
+    const doc = range.startContainer.ownerDocument;
     const el = elementOf(range.startContainer);
     if (!el) return false;
 
@@ -173,11 +226,26 @@
     const rect = range.getBoundingClientRect();
     if (!rect || (rect.width === 0 && rect.height === 0)) return false;
 
-    // 长段落里 scrollIntoView 居中的是段落，再按命中位置微调
-    const targetTop = window.innerHeight * 0.45 - rect.height / 2;
-    const dy = rect.top - targetTop;
-    if (Math.abs(dy) > 8) {
-      window.scrollBy({ top: dy, left: 0, behavior: 'smooth' });
+    // 把外层 iframe 逐级滚进视口
+    let win = doc.defaultView;
+    while (win && win !== window) {
+      const frame = win.frameElement;
+      if (!frame) break;
+      try {
+        frame.scrollIntoView({ block: 'center', inline: 'nearest' });
+      } catch (err) {
+        frame.scrollIntoView();
+      }
+      win = frame.ownerDocument.defaultView;
+    }
+
+    // 顶层文档才做像素级微调；iframe 内的坐标不能直接拿来滚顶层
+    if (doc === document) {
+      const targetTop = window.innerHeight * 0.45 - rect.height / 2;
+      const dy = rect.top - targetTop;
+      if (Math.abs(dy) > 8) {
+        window.scrollBy({ top: dy, left: 0, behavior: 'smooth' });
+      }
     }
 
     return true;
@@ -196,6 +264,17 @@
     clearTimeout(refreshTimer);
   }
 
+  function onEscape() {
+    if (jumped && originScroll) {
+      restoreScroll(originScroll);
+      highlighter.setActive(null);
+      jumped = false;
+      popup.setNote('');
+      return;
+    }
+    closeAll();
+  }
+
   /** 页面变化后，若面板还开着，防抖重算一次并原地更新。 */
   function scheduleRefresh() {
     if (!popup.isOpen() || !currentSearch) return;
@@ -206,17 +285,6 @@
       const snapshot = currentSearch;
       executeSearch(snapshot.raw, snapshot.pointer, snapshot.selRange, true);
     }, 450);
-  }
-
-  function onEscape() {
-    if (jumped && originScroll) {
-      restoreScroll(originScroll);
-      highlighter.setActive(null);
-      jumped = false;
-      popup.setNote('');
-      return;
-    }
-    closeAll();
   }
 
   /* ---------- 摘要 ---------- */
@@ -314,8 +382,9 @@
     if (!pointer && selRange) {
       const rect = selRange.getBoundingClientRect();
       if (rect && (rect.width || rect.height)) {
-        x = rect.right;
-        y = rect.bottom;
+        const point = toTopPoint(selRange.startContainer.ownerDocument, rect.right, rect.bottom);
+        x = point.x;
+        y = point.y;
       }
     }
 
@@ -377,8 +446,12 @@
     });
   }
 
-  function run() {
-    const sel = window.getSelection();
+  function run(doc) {
+    doc = doc || document;
+    const win = doc.defaultView;
+    if (!win) return;
+
+    const sel = win.getSelection();
     if (!sel || sel.rangeCount === 0) return;
 
     const range = sel.getRangeAt(0);
@@ -390,8 +463,8 @@
     if (isEditable(sel.anchorNode) || isEditable(sel.focusNode)) return;
     if (visibleCharCount(raw) < minLength(raw)) return;
 
-    // 页面用 data-sts-root 圈定了检索范围时，范围外的选区不处理（如 PDF 阅读器的工具栏）
-    const scope = document.querySelector('[data-sts-root]');
+    // 页面用 data-sts-root 圈定了检索范围时，范围外的选区不处理
+    const scope = doc.querySelector('[data-sts-root]');
     if (scope && !scope.contains(sel.anchorNode)) return;
     if (scope && !scope.contains(sel.focusNode)) return;
 
@@ -410,9 +483,10 @@
     executeSearch(raw, pointer, range, false);
   }
 
-  function schedule(ms) {
+  function schedule(ms, doc) {
+    pendingDoc = doc || document;
     clearTimeout(timer);
-    timer = setTimeout(run, ms);
+    timer = setTimeout(() => run(pendingDoc), ms);
   }
 
   function isOurEvent(e) {
@@ -423,67 +497,51 @@
 
   /* ---------- 事件 ---------- */
 
-  document.addEventListener(
-    'mouseup',
-    (e) => {
-      if (e.button !== 0) return;
-      if (isOurEvent(e)) return;
-      lastPointer = { x: e.clientX, y: e.clientY };
-      schedule(MOUSE_DEBOUNCE);
-    },
-    true
-  );
+  function onMouseUp(e, doc) {
+    if (e.button !== 0) return;
+    if (doc === document && isOurEvent(e)) return;
+    lastPointer = toTopPoint(doc, e.clientX, e.clientY);
+    schedule(MOUSE_DEBOUNCE, doc);
+  }
 
-  document.addEventListener('selectionchange', () => {
+  function onMouseDown(e, doc) {
+    if (!popup.isOpen()) return;
+    if (doc === document && isOurEvent(e)) return;
+    closeAll();
+  }
+
+  function onSelectionChange(doc) {
     if (popup.isOpen() && jumped) return;
-    schedule(KEY_DEBOUNCE);
-  });
+    schedule(KEY_DEBOUNCE, doc);
+  }
 
-  document.addEventListener(
-    'mousedown',
-    (e) => {
-      if (!popup.isOpen()) return;
-      if (isOurEvent(e)) return;
-      closeAll();
-    },
-    true
-  );
+  function onKeyDown(e, doc) {
+    if (!popup.isOpen()) return;
 
-  document.addEventListener(
-    'keydown',
-    (e) => {
-      if (!popup.isOpen()) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      onEscape();
+      return;
+    }
 
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
-        onEscape();
-        return;
-      }
+    if (isEditable(e.target)) return;
 
-      if (isEditable(e.target)) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      popup.move(1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      popup.move(-1);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      popup.activate();
+    }
+  }
 
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        popup.move(1);
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        popup.move(-1);
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        popup.activate();
-      }
-    },
-    true
-  );
+  /* ---------- 观察各 document ---------- */
 
-  window.addEventListener('resize', () => {
-    if (popup.isOpen()) closeAll();
-  });
-
-  /* ---------- DOM 变化标记索引失效 ---------- */
-
-  const observer = new MutationObserver((mutations) => {
+  function onMutations(mutations) {
     for (const mu of mutations) {
       if (mu.type === 'childList') {
         let onlyOurs = true;
@@ -510,12 +568,76 @@
       scheduleRefresh();
       return;
     }
-  });
+  }
 
-  observer.observe(document.documentElement, {
-    childList: true,
-    subtree: true,
-    characterData: true
+  function observeDoc(doc) {
+    if (!doc || !doc.documentElement || observedDocs.has(doc)) return;
+    observedDocs.add(doc);
+
+    const mo = new MutationObserver(onMutations);
+    mo.observe(doc.documentElement, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+  }
+
+  /** iframe 加载/切换文档后，索引和监听都要跟着更新 */
+  function attachFrameLoads(doc) {
+    const frames = doc.querySelectorAll('iframe, frame');
+    for (const frame of frames) {
+      if (frame.__stsLoadHooked) continue;
+      frame.__stsLoadHooked = true;
+      frame.addEventListener('load', () => {
+        mapDirty = true;
+        try {
+          const child = frame.contentDocument;
+          if (child) watchDoc(child);
+        } catch (err) {
+          // 跨域或已卸载
+        }
+        scheduleRefresh();
+      });
+    }
+  }
+
+  /** 已经加载完成的同源 iframe，直接接管它的 document。 */
+  function watchExistingFrames(doc) {
+    for (const frame of doc.querySelectorAll('iframe, frame')) {
+      try {
+        const child = frame.contentDocument;
+        if (child && child.body) watchDoc(child);
+      } catch (err) {
+        // 跨域
+      }
+    }
+  }
+
+  function watchDoc(doc) {
+    if (!doc || !doc.documentElement || watchedDocs.has(doc)) return;
+    watchedDocs.add(doc);
+
+    doc.addEventListener('mouseup', (e) => onMouseUp(e, doc), true);
+    doc.addEventListener('mousedown', (e) => onMouseDown(e, doc), true);
+    doc.addEventListener('selectionchange', () => onSelectionChange(doc));
+    doc.addEventListener('keydown', (e) => onKeyDown(e, doc), true);
+
+    observeDoc(doc);
+    attachFrameLoads(doc);
+    watchExistingFrames(doc);
+  }
+
+  function watchMapDocs(textMap) {
+    if (!textMap || !textMap.docs) return;
+    for (const doc of textMap.docs) watchDoc(doc);
+  }
+
+  /* ---------- 启动 ---------- */
+
+  watchDoc(document);
+
+  window.addEventListener('resize', () => {
+    if (popup.isOpen()) closeAll();
   });
 
   // 自测钩子：内容脚本运行在隔离世界，页面脚本看不到；

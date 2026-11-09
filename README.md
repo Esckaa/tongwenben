@@ -18,6 +18,7 @@
 
 - **页面变化自动刷新**（2026-11-09）：面板开着时，页面新增/删除文本会在 450ms 防抖后重建索引并原地更新列表；结果没变不重绘，面板位置（包括拖拽后的位置）保持不变。
 - **内置 PDF 阅读器**（2026-11-09）：点扩展工具栏图标，或设置页里的「打开 PDF 阅读器」，打开本地 PDF。PDF.js 渲染页面并生成可选中的文字层，选中文字后同样弹列表、跳转、高亮。
+- **同源 iframe**（2026-11-09）：顶层页面和同源 iframe 的文本合并成一份索引；在 iframe 里选中文字，一样在顶层弹面板、跨文档高亮、跳转。跨域 iframe 暂不支持。
 
 ## 安装
 
@@ -59,6 +60,17 @@
 | 检索 | 选中 `PDFTEST` | 找到 1 处，点击后橙色高亮 |
 | 缩放 | 点 `+` / `−` / 适合宽度 | 页面重新渲染，比例变化 |
 | 换文件 | 再打开另一个 PDF | 旧页面清空，新文件从第 1 页开始 |
+
+### 同源 iframe
+
+打开 `test/fixtures/frames.html`：
+
+| 验收项 | 操作 | 预期 |
+|---|---|---|
+| 跨 iframe 合并 | 在 iframe 里选中加粗的目标短语 | 面板显示「找到 3 处」：顶层 1 + iframe 2 |
+| 跨 iframe 高亮 | 面板打开时 | 顶层 1 处黄标、iframe 内 2 处黄标同时出现 |
+| 跨 iframe 跳转 | 点 iframe 里的条目 | iframe 内部滚到对应段落，橙色高亮 |
+| 顶层不受影响 | 在顶层选中同一短语 | 仍然正常弹面板、计数为 3 |
 | 设置生效 | 扩展选项里关掉「按标题分组」 | 下一次选区，列表不再出现分组标题 |
 
 打开 `test/fixtures/stress.html`：
@@ -102,7 +114,14 @@ node test/pdf-ext-cdp.js    # 真实扩展页：chrome-extension:// 下的 worke
 前者用 `?pdf=...&test=1` 自动加载 `sample.pdf` 并选中 `PDFTEST`；后者按路径算出扩展 ID，
 打开扩展内的阅读页，通过文件输入框塞入同一个 PDF。
 
-当前结果：**32/32、20/20、扩展环境 HOST YES / ALL 3、PDF 阅读器 1 页 / 1 文字层 / 命中 1 处，全部通过**
+同源 iframe 也有两条：
+
+```powershell
+node test/frames-cdp.js       # 页面模式：7 项断言（浮层、3 处命中、跨文档高亮）
+node test/frames-ext-cdp.js   # 真实扩展：顶层 1 处 + iframe 2 处
+```
+
+当前结果：**32/32、20/20、扩展环境 HOST YES / ALL 3、PDF 阅读器 1 页 / 1 文字层 / 命中 1 处、同源 iframe 7/7 且扩展环境 top 1 / frame 2，全部通过**
 （2026-11-09，Edge 157.0.4341.42 无头模式）。
 
 脚本默认使用 `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`；
@@ -139,17 +158,23 @@ test/
   serve.js       联调用本地静态服务器
   pdf-cdp.js     PDF 阅读器自测（HTTP 模式）
   pdf-ext-cdp.js PDF 阅读器自测（真实扩展页）
+  frames-e2e.html 同源 iframe 端到端页
+  frames-e2e.js
+  frames-cdp.js    同源 iframe 自测（页面模式）
+  frames-ext-cdp.js 同源 iframe 自测（真实扩展）
   find-ext-id.js 未打包扩展 ID 探测
   fixtures/demo.html      英语阅读分栏演示
   fixtures/live.html      自动刷新验证页（会自己追加文本）
   fixtures/stress.html    60 处重复压力页
   fixtures/sample-src.html 生成 sample.pdf 的源
   fixtures/sample.pdf      1 页测试 PDF
+  fixtures/frames.html     同源 iframe 演示
+  fixtures/frame-src.html  iframe 子页面
 ```
 
 ## 已知限制
 
-- 只检索**主文档已渲染的可见文本**：iframe、Shadow DOM、折叠内容、其他标签页都不在内。
+- 只检索**主文档已渲染的可见文本**；同源 iframe 已支持，跨域 iframe、Shadow DOM、折叠内容、其他标签页都不在内。
 - 近似兜底是**关键词覆盖**，不理解语义，也可能把不相干的句子排上来；它只是「找最像的」，不保证正确。
 - 兜底最多给 3 条，只按覆盖率排序。
 - 浏览器内置 PDF 阅读器读不到；Canvas 文档（Google Docs、腾讯文档）读不到。
@@ -170,6 +195,7 @@ test/
 ## 下一步（P3 剩余）
 
 - 大页面分片建索引，避免首次选区卡顿
-- 同源 iframe 与 Shadow DOM
+- Shadow DOM
 - 目标被折叠/隐藏时的更准确提示
+- 跨域 iframe（如果需要，走 all_frames + 帧间消息）
 - PDF 阅读器：懒渲染大文档、页面跳转与页码定位

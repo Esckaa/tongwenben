@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Iframe E2E</title>
+<style>
+  body { font: 14px/1.6 system-ui, sans-serif; margin: 16px; }
+  iframe { width: 600px; height: 220px; border: 1px solid #ccc; }
+  #out { white-space: pre-wrap; background: #f6f6f6; padding: 12px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<h1>Iframe E2E</h1>
+<p>Top level: iframe needle once.</p>
+<iframe id="frame" src="fixtures/frame-src.html" title="frame"></iframe>
+<pre id="out">running…</pre>
+
+<script src="../extension/src/textmap.js"></script>
+<script src="../extension/src/search.js"></script>
+<script src="../extension/src/fallback.js"></script>
+<script src="../extension/src/highlight.js"></script>
+<script src="../extension/src/popup.js"></script>
+<script src="../extension/src/content.js"></script>
+<script src="frames-e2e.js"></script>
+</body>
+</html>

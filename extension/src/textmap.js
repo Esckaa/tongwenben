@@ -4,6 +4,7 @@
  *   全局偏移 -> (文本节点, 节点内偏移)
  * 的映射。这样 `人工<b>智能</b>` 这种被标签切断的文本也能被搜到。
  *
+ * 同源 iframe 会被递归并入同一条字符串；跨域 iframe 静默跳过。
  * 块级元素之间插入哨兵 \u0001，防止把两个段落拼成一句假匹配。
  * 隐藏子树（display:none / visibility:hidden / content-visibility:hidden）整棵跳过。
  */
@@ -17,7 +18,7 @@
   // 这些标签的内容不参与检索
   const SKIP_TAGS = new Set([
     'SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'SVG', 'CANVAS',
-    'IFRAME', 'OBJECT', 'EMBED', 'VIDEO', 'AUDIO', 'HEAD',
+    'OBJECT', 'EMBED', 'VIDEO', 'AUDIO', 'HEAD',
     'META', 'LINK', 'TITLE',
     // 表单控件里的文本不是页面可见正文，且可能是默认值而非当前值
     'SELECT', 'OPTION', 'OPTGROUP', 'DATALIST', 'TEXTAREA'
@@ -42,7 +43,8 @@
     if (el.hasAttribute('hidden')) {
       hidden = true;
     } else {
-      const cs = global.getComputedStyle(el);
+      const win = el.ownerDocument && el.ownerDocument.defaultView;
+      const cs = win ? win.getComputedStyle(el) : null;
       if (cs) {
         hidden =
           cs.display === 'none' ||
@@ -56,18 +58,31 @@
     return hidden;
   }
 
+  /** 同源 iframe 才拿得到 contentDocument；跨域返回 null。 */
+  function frameDocOf(el) {
+    try {
+      const doc = el.contentDocument;
+      return doc && doc.documentElement ? doc : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
   /**
    * 建立文本索引。
    * @param {Element} [root] 索引根节点，默认 document.body
-   * @returns {{text:string, segs:Array<{node:Text,start:number,end:number}>, sep:string}}
+   * @param {{includeFrames?:boolean}} [options] includeFrames=false 时不进 iframe
    */
-  function build(root) {
+  function build(root, options) {
     root = root || document.body;
+    const includeFrames = !options || options.includeFrames !== false;
     styleCache = new WeakMap();
 
     const chunks = [];
     const segs = [];
     const headings = [];
+    const docs = new Set([root.ownerDocument || document]);
+    const visitedDocs = new Set([root.ownerDocument || document]);
     let length = 0;
     let lastWasSep = true; // 避免开头出现分隔符
 
@@ -91,12 +106,18 @@
     // 迭代式 DFS，避免深 DOM 递归爆栈
     const stack = [{ node: root, exit: false }];
     while (stack.length) {
-      const frame = stack.pop();
-      const node = frame.node;
+      const entry = stack.pop();
 
-      if (frame.exit) {
-        if (typeof frame.heading === 'number' && frame.heading >= 0) {
-          headings[frame.heading].end = length;
+      if (entry.sepAfterFrame) {
+        pushSep();
+        continue;
+      }
+
+      const node = entry.node;
+
+      if (entry.exit) {
+        if (typeof entry.heading === 'number' && entry.heading >= 0) {
+          headings[entry.heading].end = length;
         }
         if (node.nodeType === 1 && BLOCK_TAGS.has(node.tagName)) pushSep();
         continue;
@@ -108,9 +129,29 @@
       }
       if (node.nodeType !== 1) continue;
 
-      if (SKIP_TAGS.has(node.tagName)) continue;
       if (node.hasAttribute && node.hasAttribute('data-sts-host')) continue;
       if (isHidden(node)) continue;
+
+      // 同源 iframe：把子文档当成一段内容接进来
+      if (node.tagName === 'IFRAME' || node.tagName === 'FRAME') {
+        pushSep();
+        if (includeFrames) {
+          const doc = frameDocOf(node);
+          if (doc && !visitedDocs.has(doc)) {
+            visitedDocs.add(doc);
+            docs.add(doc);
+            const body = doc.body || doc.documentElement;
+            if (body) {
+              // 先压“结束后补分隔符”，再压子文档根，保证子文档内容在两者之间
+              stack.push({ node: null, exit: true, sepAfterFrame: true });
+              stack.push({ node: body, exit: false });
+            }
+          }
+        }
+        continue;
+      }
+
+      if (SKIP_TAGS.has(node.tagName)) continue;
 
       if (BLOCK_TAGS.has(node.tagName)) pushSep();
       if (node.tagName === 'BR') {
@@ -138,7 +179,7 @@
       }
     }
 
-    return { text: chunks.join(''), segs, headings, sep: SEP };
+    return { text: chunks.join(''), segs, headings, docs, sep: SEP };
   }
 
   /**
@@ -164,7 +205,7 @@
     return null;
   }
 
-  /** 用全局偏移构造一个 Range；跨文本节点时 Range 会自然跨过去。 */
+  /** 用全局偏移构造一个 Range；Range 必须建在节点所属的 document 上。 */
   function rangeFor(map, start, end) {
     if (end <= start) return null;
 
@@ -172,7 +213,7 @@
     const b = locate(map.segs, end - 1);
     if (!a || !b) return null;
 
-    const range = document.createRange();
+    const range = a.node.ownerDocument.createRange();
     try {
       range.setStart(a.node, a.offset);
       range.setEnd(b.node, b.offset + 1);
