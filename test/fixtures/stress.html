@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Stress · 60 处重复</title>
+<style>
+  body { font: 14px/1.8 system-ui, sans-serif; margin: 24px; max-width: 720px; }
+  p { margin: 0 0 10px; }
+  code { background: #eee; padding: 1px 4px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<h1>压力测试</h1>
+<p>选中任意一行里的固定短语（每行都相同），标题应显示「找到 60 处」，列表默认只展示前 100 条（这里是 60 条）。</p>
+<p>点第 7 条应滚动到第 7 段；按 Esc 先回到原来的位置，再按一次关闭。</p>
+
+<div id="rows"></div>
+
+<script>
+  (function () {
+    var host = document.getElementById('rows');
+    var frag = document.createDocumentFragment();
+    for (var i = 1; i <= 60; i += 1) {
+      var p = document.createElement('p');
+      p.textContent = 'Row ' + i + ': stress phrase appears here.';
+      frag.appendChild(p);
+    }
+    host.appendChild(frag);
+  })();
+</script>
+</body>
+</html>

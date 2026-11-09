@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>同文本检索 · 设置</title>
+<link rel="stylesheet" href="src/options.css">
+</head>
+<body>
+<main>
+  <h1>同文本检索 · 设置</h1>
+
+  <label class="row">
+    <input type="checkbox" id="fallback">
+    <span>
+      <b>近似兜底</b>
+      <small>完全一致一处都没有时，按关键词覆盖找最相近的 3 段，并标注相似度。</small>
+    </span>
+  </label>
+
+  <label class="row">
+    <input type="checkbox" id="groupByHeading">
+    <span>
+      <b>按标题分组</b>
+      <small>结果按最近的 h1–h6 标题分段显示，长文里更好找。</small>
+    </span>
+  </label>
+
+  <label class="row">
+    <span>
+      <b>最多显示</b>
+      <small>超出部分只计数，不逐条列出。</small>
+    </span>
+    <select id="maxShow">
+      <option value="50">50 条</option>
+      <option value="100">100 条</option>
+      <option value="200">200 条</option>
+    </select>
+  </label>
+
+  <p id="status" class="status" role="status"></p>
+</main>
+<script src="src/options.js"></script>
+</body>
+</html>

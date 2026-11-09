@@ -1,0 +1,20 @@
+/* 页面级样式：只放 ::highlight 规则。
+ * 由 manifest 的 content_scripts.css 注入，不受站点 CSP 影响。
+ */
+::highlight(sts-all) {
+  background-color: rgba(255, 214, 0, 0.42);
+}
+
+::highlight(sts-active) {
+  background-color: rgba(255, 120, 0, 0.78);
+}
+
+@media (prefers-color-scheme: dark) {
+  ::highlight(sts-all) {
+    background-color: rgba(255, 196, 0, 0.32);
+  }
+
+  ::highlight(sts-active) {
+    background-color: rgba(255, 132, 0, 0.7);
+  }
+}

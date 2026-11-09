@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "同文本检索",
+  "version": "0.2.0",
+  "description": "选中页面文字，在指针旁列出全页相同文本，点击跳转。",
+  "permissions": ["storage"],
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "src/textmap.js",
+        "src/search.js",
+        "src/fallback.js",
+        "src/highlight.js",
+        "src/popup.js",
+        "src/content.js"
+      ],
+      "css": ["src/page.css"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/popup.css"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

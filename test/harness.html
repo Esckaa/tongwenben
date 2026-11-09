@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>STS harness</title>
+<style>
+  body { font: 14px/1.6 system-ui, sans-serif; margin: 20px; }
+  #fixture { max-width: 640px; }
+  #out { white-space: pre-wrap; background: #f6f6f6; padding: 12px; border-radius: 8px; }
+  .pass { color: #0a7a2f; }
+  .fail { color: #b00020; }
+</style>
+</head>
+<body>
+<h1>同文本检索 · 核心逻辑自测</h1>
+
+<div id="fixture">
+  <p id="t1">人工<b>智能</b>技术</p>
+  <div id="t2"><p>foo</p><p>bar</p></div>
+  <p id="t3">ＡＩ 与 AI</p>
+  <p id="t4">hello    world</p>
+  <p id="t5" style="display:none">needle hidden</p>
+  <p id="t6">needle visible</p>
+  <p id="t7">“quote” and “quote”</p>
+  <p id="t8">Hello hello HELLO</p>
+  <p id="t9" style="visibility:hidden">needle invisible</p>
+
+  <h2 id="h1">Chapter One</h2>
+  <p id="p1">The largest contributor to this warming is carbon dioxide.</p>
+  <h2 id="h2">Chapter Two</h2>
+  <p id="p2">Burning fossil fuels releases heat-trapping gases.</p>
+</div>
+
+<pre id="out">running…</pre>
+
+<script>
+  window.addEventListener('error', function (e) {
+    var out = document.getElementById('out');
+    if (out) {
+      out.textContent = 'ERROR: ' + e.message + ' @ ' + (e.filename || '?') + ':' + e.lineno;
+    }
+  });
+</script>
+
+<script src="../extension/src/textmap.js"></script>
+<script src="../extension/src/search.js"></script>
+<script src="../extension/src/fallback.js"></script>
+<script src="harness.js"></script>
+</body>
+</html>

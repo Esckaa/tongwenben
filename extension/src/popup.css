@@ -1,0 +1,187 @@
+/* 浮层样式：加载进关闭的 Shadow DOM，选择器不会泄漏到页面。 */
+
+:host {
+  all: initial;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.panel {
+  width: 360px;
+  max-width: calc(100vw - 16px);
+  background: #ffffff;
+  color: #1a1a1a;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+  font: 13px/1.5 system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  overflow: hidden;
+  user-select: none;
+}
+
+.head {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  cursor: move;
+  touch-action: none;
+}
+
+.grip {
+  flex: 0 0 auto;
+  color: #c0c0c0;
+  font-size: 11px;
+  letter-spacing: -1px;
+}
+
+.title {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.needle {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  color: #777;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.list {
+  max-height: min(52vh, 380px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px;
+}
+
+.group {
+  padding: 6px 8px 2px;
+  color: #999;
+  font-size: 11px;
+}
+
+.item {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.item:hover,
+.item.is-active {
+  background: rgba(255, 193, 7, 0.2);
+}
+
+.item.is-active {
+  outline: 1px solid rgba(255, 152, 0, 0.55);
+}
+
+.idx {
+  flex: 0 0 auto;
+  min-width: 18px;
+  color: #999;
+  font-size: 11px;
+  padding-top: 2px;
+}
+
+.snip {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.snip mark {
+  background: rgba(255, 213, 0, 0.75);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.score {
+  flex: 0 0 auto;
+  color: #b26a00;
+  font-size: 11px;
+  padding-top: 2px;
+}
+
+.empty {
+  padding: 16px 12px;
+  color: #666;
+}
+
+.empty p {
+  margin: 0 0 6px;
+}
+
+.empty small {
+  color: #999;
+}
+
+.foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  color: #999;
+  font-size: 11px;
+}
+
+.note {
+  text-align: right;
+}
+
+@media (prefers-color-scheme: dark) {
+  .panel {
+    background: #202124;
+    color: #e8eaed;
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+  }
+
+  .head,
+  .foot {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .needle,
+  .idx,
+  .foot,
+  .empty,
+  .empty small,
+  .group {
+    color: #9aa0a6;
+  }
+
+  .grip {
+    color: #5f6368;
+  }
+
+  .score {
+    color: #f5b74e;
+  }
+
+  .item:hover,
+  .item.is-active {
+    background: rgba(255, 193, 7, 0.16);
+  }
+
+  .snip mark {
+    background: rgba(255, 213, 0, 0.35);
+  }
+}

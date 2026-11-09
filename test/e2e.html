@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>STS e2e</title>
+<style>
+  body { font: 14px/1.7 system-ui, sans-serif; margin: 20px; }
+  .spacer { height: 1200px; }
+  #e2e-out { white-space: pre-wrap; background: #f6f6f6; padding: 12px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<h1>E2E · 同文本检索</h1>
+
+<p id="dup1">重复文本 A</p>
+<div class="spacer">占位</div>
+<p id="dup2">重复文本 B</p>
+<div class="spacer">占位</div>
+<p id="dup3">重复文本 C</p>
+
+<p id="p2">The largest contributor to this warming is carbon dioxide.</p>
+<p id="q1">What role does carbon dioxide</p>
+<p id="q2">play in warming?</p>
+
+<p id="p3">This natural process is known as the greenhouse effect.</p>
+<p id="p4">Scientists track how quickly the greenhouse effect is intensifying.</p>
+<p id="p5">In simple terms, the greenhouse effect is a blanket around the planet.</p>
+<p id="q3">What is the main function of the greenhouse effect described in paragraph 1?</p>
+
+<pre id="e2e-out">running…</pre>
+
+<script src="../extension/src/textmap.js"></script>
+<script src="../extension/src/search.js"></script>
+<script src="../extension/src/fallback.js"></script>
+<script src="../extension/src/highlight.js"></script>
+<script src="../extension/src/popup.js"></script>
+<script src="../extension/src/content.js"></script>
+<script src="e2e.js"></script>
+</body>
+</html>

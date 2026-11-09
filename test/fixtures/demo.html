@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reading Practice · The Greenhouse Effect</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0;
+    font: 15px/1.75 Georgia, "Times New Roman", serif;
+    background: #f7f5f0;
+    color: #222;
+  }
+  header {
+    padding: 14px 24px;
+    background: #1f3a5f;
+    color: #fff;
+    font: 14px/1.6 system-ui, sans-serif;
+  }
+  header b { color: #ffd75e; }
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+    gap: 28px;
+    max-width: 1180px;
+    margin: 24px auto;
+    padding: 0 24px 80px;
+  }
+  .questions {
+    position: sticky;
+    top: 16px;
+    align-self: start;
+    background: #fff;
+    border: 1px solid #ddd6c8;
+    border-radius: 10px;
+    padding: 16px 20px;
+    font: 14px/1.7 system-ui, sans-serif;
+  }
+  .questions h2, .passage h2 {
+    margin: 0 0 10px;
+    font: 600 16px/1.5 system-ui, sans-serif;
+    letter-spacing: .02em;
+  }
+  .questions ol { margin: 0; padding-left: 20px; }
+  .questions li { margin: 0 0 14px; }
+  .questions mark {
+    background: #fff3b0;
+    padding: 0 2px;
+    border-radius: 2px;
+  }
+  .passage {
+    background: #fff;
+    border: 1px solid #ddd6c8;
+    border-radius: 10px;
+    padding: 22px 30px;
+  }
+  .passage p { margin: 0 0 16px; }
+  .passage b { color: #1f3a5f; }
+  .hint {
+    margin-top: 8px;
+    color: #6b6455;
+    font: 12px/1.6 system-ui, sans-serif;
+  }
+  @media (max-width: 760px) {
+    .layout { grid-template-columns: 1fr; }
+    .questions { position: static; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  手动验收页 · 选中题干里的关键短语，工具会在整页（含右侧文章）列出所有相同文本。
+  试试题干里的两个短语。
+</header>
+
+<main class="layout">
+  <section class="questions">
+    <h2>Questions</h2>
+    <ol>
+      <li>
+        Why does the author mention <mark>carbon dioxide</mark> in paragraph 2?
+        <div class="hint">注意：文章里这一处写作 <code>carbon &lt;b&gt;dioxide&lt;/b&gt;</code>，被标签切断了。</div>
+      </li>
+      <li>
+        What is the main function of <mark>the greenhouse effect</mark> described in paragraph 1?
+      </li>
+      <li>
+        According to the passage, which human activity intensifies this warming
+        most directly?
+      </li>
+      <li>
+        The author implies that burning <mark>fossil fuels</mark> is harmful because ______.
+      </li>
+      <li>
+        Which paragraph restates this process in simpler terms?
+      </li>
+    </ol>
+    <div class="hint">
+      文章最后有一段 <code>display:none</code> 的草稿，里面也含相同短语；
+      工具应把它排除在外，总数不应把它算进去。
+    </div>
+  </section>
+
+  <article class="passage">
+    <h2>Passage</h2>
+
+    <p>
+      The Earth receives energy from the Sun and radiates heat back into space.
+      Certain gases in the atmosphere trap part of that heat and keep the planet
+      warmer than it would otherwise be. This natural process is known as
+      <b>the greenhouse effect</b>, and without it the average surface temperature
+      would be far below freezing.
+    </p>
+
+    <p>
+      The largest contributor to this warming is carbon <b>dioxide</b>,
+      which is released when coal, oil and gas are burned. Industrial activity
+      over the past two centuries has raised atmospheric concentrations of
+      carbon dioxide sharply, strengthening the greenhouse effect beyond its
+      natural range.
+    </p>
+
+    <p>
+      Methane, nitrous oxide and water vapour also play a role. Methane is far
+      more potent per molecule than carbon dioxide, although it leaves the
+      atmosphere more quickly. Scientists therefore track both gases when they
+      estimate how quickly <b>the greenhouse effect</b> is intensifying.
+    </p>
+
+    <p>
+      Burning <b>fossil fuels</b> is the single largest source of the extra
+      carbon dioxide. Deforestation adds to the problem because forests
+      normally absorb a substantial share of the gas. When trees are cut and
+      burned, that stored carbon returns to the atmosphere, and the greenhouse
+      effect is pushed further out of balance.
+    </p>
+
+    <p>
+      Many governments now subsidise renewable energy and tax <b>fossil fuels</b>
+      in an attempt to slow emissions. Critics argue that such policies raise
+      energy prices for ordinary households. Supporters reply that the cost of
+      inaction, measured in floods, droughts and crop failures, is far higher.
+    </p>
+
+    <p>
+      In simple terms, <b>the greenhouse effect</b> is a blanket around the
+      planet: it keeps us warm, but too many blankets make us dangerously hot.
+      Understanding this image is the first step towards reducing emissions and
+      stabilising the climate.
+    </p>
+
+    <p style="display:none">
+      Draft note: the greenhouse effect is mentioned here only in a hidden
+      paragraph and must not be counted by the search tool.
+    </p>
+  </article>
+</main>
+
+</body>
+</html>

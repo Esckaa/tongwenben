@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>STS extension test</title>
+<style>
+  body { font: 14px/1.8 system-ui, sans-serif; margin: 24px; max-width: 640px; }
+  pre { background: #f4f4f4; padding: 12px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<h1>真实扩展联调</h1>
+<p id="n1">extension needle one</p>
+<p>extension needle two</p>
+<p>extension needle three</p>
+<pre id="out">running…</pre>
+
+<script>
+  // 这个页面本身不加载扩展代码；只用鼠标事件模拟一次真实选区，
+  // 由真正的 content script 接管，再检查它留下的 DOM 与高亮。
+  setTimeout(function () {
+    try {
+      var t = document.getElementById('n1').firstChild;
+      var r = document.createRange();
+      r.setStart(t, 0);
+      r.setEnd(t, 9); // "extension"
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(r);
+      document.dispatchEvent(new MouseEvent('mouseup', {
+        bubbles: true, clientX: 420, clientY: 260, button: 0
+      }));
+    } catch (e) {
+      document.getElementById('out').textContent = 'SETUP ERROR ' + e.message;
+    }
+  }, 1200);
+
+  setTimeout(function () {
+    var host = document.querySelector('[data-sts-host]');
+    var all = window.CSS && CSS.highlights ? CSS.highlights.get('sts-all') : null;
+    var lines = [
+      'HOST ' + (host ? 'YES' : 'NO'),
+      'ALL ' + (all ? Array.from(all).length : -1),
+      'ACTIVE ' + (window.CSS && CSS.highlights && CSS.highlights.has('sts-active') ? 'YES' : 'NO')
+    ];
+    document.getElementById('out').textContent = lines.join('\n');
+  }, 2600);
+</script>
+</body>
+</html>
