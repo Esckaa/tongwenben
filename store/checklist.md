@@ -27,6 +27,7 @@
 |---|---|---|
 | 安装包 | `dist/tongwenben-1.0.0.zip` | 已有 |
 | 商店徽标 300×300 | `store/logo-300.png` | 已有 |
+| 小型促销磁贴 440×280 | `store/promo-440x280.png` | 已有（可选） |
 | 截图 1 主面板 | `store/screenshots/01-panel.png` | 已有，1280×800 |
 | 截图 2 悬停变深 | `store/screenshots/02-hover.png` | 已有，1280×800 |
 | 截图 3 设置页 | `store/screenshots/03-options.png` | 已有，1280×800 |

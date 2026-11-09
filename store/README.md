@@ -10,6 +10,7 @@
 | `permissions.md` | 权限对齐、隐私问卷答案、审核测试说明 |
 | `checklist.md` | 注册与提交的逐项清单 |
 | `logo-300.png` | 商店徽标 300×300 |
+| `promo-440x280.png` | 小型促销磁贴 440×280（可选） |
 | `screenshots/01-panel.png` | 主面板：3 处命中、浅色高亮 |
 | `screenshots/02-hover.png` | 悬停一处，该处变深 |
 | `screenshots/03-options.png` | 6 套色系设置页 |
