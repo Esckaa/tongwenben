@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>同文本检索</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 18px;
+    background: linear-gradient(160deg, #fff8e6, #f4efe4 55%, #efe9dc);
+    color: #1f2328;
+    font: 16px/1.75 system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  }
+  main {
+    width: 100%;
+    max-width: 620px;
+    background: #fff;
+    border: 1px solid #e2ded4;
+    border-radius: 16px;
+    padding: 34px 34px 30px;
+    box-shadow: 0 12px 40px rgba(90, 70, 20, 0.12);
+  }
+  .icon {
+    width: 64px; height: 64px;
+    border-radius: 15px;
+    background: linear-gradient(180deg, #f6b23e, #e2840c);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 18px;
+  }
+  .icon span { font-size: 34px; line-height: 1; }
+  h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: 0.02em; }
+  .tag { margin: 0 0 20px; color: #6b6455; }
+  .links { display: grid; gap: 10px; margin: 22px 0 18px; }
+  .links a {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 11px 14px;
+    border: 1px solid #e2ded4;
+    border-radius: 9px;
+    color: inherit;
+    text-decoration: none;
+    background: #fcfbf8;
+  }
+  .links a:hover { border-color: #d4a33e; background: #fff8e6; }
+  .links small { color: #8a8272; }
+  .meta { color: #8a8272; font-size: 13px; margin: 0; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #17181a; color: #e8eaed; }
+    main { background: #202124; border-color: #35363a; box-shadow: none; }
+    .tag, .meta, .links small { color: #9aa0a6; }
+    .links a { background: #28292c; border-color: #3c4043; }
+    .links a:hover { background: #2f2a1d; border-color: #8a6a24; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="icon"><span>🔍</span></div>
+  <h1>同文本检索</h1>
+  <p class="tag">
+    选中网页文字，在指针旁列出全页相同文本；点击跳转并高亮。<br>
+    支持同源 iframe、Shadow DOM 与内置 PDF 阅读器。
+  </p>
+
+  <div class="links">
+    <a href="./privacy.html">
+      <span>隐私说明</span><small>不联网 · 不上传 · 不收集</small>
+    </a>
+    <a href="https://github.com/Esckaa/tongwenben">
+      <span>GitHub 仓库</span><small>源码与更新记录</small>
+    </a>
+    <a href="https://github.com/Esckaa/tongwenben/blob/main/README.md">
+      <span>安装与使用说明</span><small>离线 zip / 加载解压扩展</small>
+    </a>
+  </div>
+
+  <p class="meta">当前版本 1.0.0 · MIT License</p>
+</main>
+</body>
+</html>

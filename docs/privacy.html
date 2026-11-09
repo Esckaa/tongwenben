@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>隐私说明 · 同文本检索</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 40px 20px 80px;
+    background: #f7f5f0;
+    color: #1f2328;
+    font: 16px/1.75 system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  }
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    border: 1px solid #e2ded4;
+    border-radius: 14px;
+    padding: 32px 36px 40px;
+  }
+  h1 { margin: 0 0 6px; font-size: 26px; }
+  h2 { margin: 30px 0 10px; font-size: 18px; }
+  p, li { margin: 8px 0; }
+  ul { padding-left: 22px; }
+  .meta { color: #777; font-size: 13px; margin-bottom: 18px; }
+  .lead {
+    background: #fff8e1;
+    border: 1px solid #f0e0a8;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 18px 0;
+  }
+  code {
+    background: #f1efe9;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 14px; }
+  th, td { border: 1px solid #e2ded4; padding: 8px 10px; text-align: left; }
+  th { background: #faf8f3; }
+  a { color: #9a5b00; }
+  footer { margin-top: 34px; padding-top: 16px; border-top: 1px solid #eee9df; color: #777; font-size: 13px; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #17181a; color: #e8eaed; }
+    main { background: #202124; border-color: #35363a; }
+    .lead { background: #2a2414; border-color: #4a3f1d; }
+    code { background: #2d2e31; }
+    th { background: #28292c; }
+    th, td { border-color: #3c4043; }
+    footer { border-color: #35363a; color: #9aa0a6; }
+    a { color: #f5b74e; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>隐私说明</h1>
+  <div class="meta">同文本检索 · 版本 1.0.0 · 更新于 2026-11-09</div>
+
+  <div class="lead">
+    同文本检索是纯本地工具。核心原则：<strong>不联网、不上传、不收集</strong>。
+  </div>
+
+  <h2>收集什么</h2>
+  <p>什么都不收集。</p>
+  <ul>
+    <li>没有账号系统，没有统计/埋点，没有崩溃上报。</li>
+    <li>不向任何服务器发送数据。</li>
+    <li>不读取浏览历史、书签、密码、下载记录。</li>
+  </ul>
+
+  <h2>页面文字怎么处理</h2>
+  <p>选中文字后，扩展在当前页面的内存里建立文本索引并做匹配：</p>
+  <ul>
+    <li>文字只在当前标签页的进程内处理；</li>
+    <li>不会写入磁盘，不会上传；</li>
+    <li>关闭标签页后即释放。</li>
+  </ul>
+  <p>
+    PDF 阅读器读取的是你手动选择的本地文件；PDF.js 已打包在扩展内，
+    运行时不下载任何远程代码或字体。
+  </p>
+
+  <h2>保存了什么</h2>
+  <p>只保存设置，使用浏览器的 <code>chrome.storage.sync</code>：</p>
+  <table>
+    <thead><tr><th>键</th><th>内容</th></tr></thead>
+    <tbody>
+      <tr><td><code>fallback</code></td><td>是否启用近似兜底</td></tr>
+      <tr><td><code>groupByHeading</code></td><td>是否按标题分组</td></tr>
+      <tr><td><code>maxShow</code></td><td>最多显示条数</td></tr>
+      <tr><td><code>accent</code></td><td>高亮色系</td></tr>
+    </tbody>
+  </table>
+  <p>
+    如果浏览器开启了账号同步，这些设置会随浏览器账号同步——这是浏览器自身的行为，
+    不经过本扩展的服务器（本扩展没有服务器）。
+  </p>
+
+  <h2>权限说明</h2>
+  <ul>
+    <li><code>storage</code>：保存上面 4 项设置。</li>
+    <li>
+      内容脚本匹配 <code>&lt;all_urls&gt;</code>：因为要在你任意打开的网页上响应“选中文字”。
+      它只读取当前页面的可见文本，用于本地检索。
+    </li>
+    <li>没有申请 <code>tabs</code>、<code>history</code>、<code>cookies</code>、<code>webRequest</code>、<code>host_permissions</code> 等权限。</li>
+    <li>没有远程代码，符合 Manifest V3 的 CSP 要求。</li>
+  </ul>
+
+  <h2>第三方组件</h2>
+  <p>
+    PDF.js 4.10.38（Apache-2.0），用于内置 PDF 阅读器，本地打包，
+    许可证在仓库的 <code>extension/vendor/pdfjs/LICENSE</code>。
+  </p>
+
+  <h2>变更</h2>
+  <p>隐私说明随版本更新；如有变化会写进本页与仓库的 <code>CHANGELOG.md</code>。</p>
+
+  <footer>
+    项目主页：<a href="https://github.com/Esckaa/tongwenben">github.com/Esckaa/tongwenben</a><br>
+    问题反馈：<a href="https://github.com/Esckaa/tongwenben/issues">GitHub Issues</a>
+  </footer>
+</main>
+</body>
+</html>
