@@ -182,7 +182,7 @@
     while (node && node !== doc.body && node !== doc.documentElement) {
       const win = doc.defaultView;
       const cs = win.getComputedStyle(node);
-      const scrollable = /(auto|scroll|overlay)/.test(cs.overflowY);
+      const scrollable = /(auto|scroll|overlay|hidden)/.test(cs.overflowY);
       if (scrollable && node.scrollHeight > node.clientHeight + 1) {
         list.push({ el: node, top: node.scrollTop, left: node.scrollLeft });
       }
@@ -202,7 +202,7 @@
       while (parent && parent !== parentDoc.body) {
         const pcs = parentDoc.defaultView.getComputedStyle(parent);
         if (
-          /(auto|scroll|overlay)/.test(pcs.overflowY) &&
+          /(auto|scroll|overlay|hidden)/.test(pcs.overflowY) &&
           parent.scrollHeight > parent.clientHeight + 1
         ) {
           list.push({ el: parent, top: parent.scrollTop, left: parent.scrollLeft });
@@ -278,6 +278,97 @@
     return null;
   }
 
+  /** 取 range 的视口矩形；不可见时返回 null。 */
+  function rectOf(range) {
+    try {
+      const rect = range.getBoundingClientRect();
+      if (!rect || (rect.width === 0 && rect.height === 0)) return null;
+      return rect;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function isScrollBox(el, win) {
+    let cs;
+    try {
+      cs = win.getComputedStyle(el);
+    } catch (err) {
+      return false;
+    }
+    // hidden 也纳入：不少阅读器用 overflow:hidden + 程序化 scrollTop 做自定义滚动条
+    if (!/(auto|scroll|overlay|hidden)/.test(cs.overflowY)) return false;
+    return el.scrollHeight > el.clientHeight + 1;
+  }
+
+  /** 由内向外，把 range 所在的每个滚动容器对准命中位置，而不是居中所属的大元素。 */
+  function scrollBoxesToRange(range, doc) {
+    const win = doc.defaultView;
+    if (!win) return false;
+
+    const start = elementOf(range.startContainer);
+    if (!start) return false;
+
+    const boxes = [];
+    let node = start;
+    while (node && node !== doc.body && node !== doc.documentElement) {
+      if (isScrollBox(node, win)) boxes.push(node);
+      node = parentOrHost(node);
+    }
+
+    for (const box of boxes) {
+      const rect = rectOf(range);
+      if (!rect) return false;
+
+      const boxRect = box.getBoundingClientRect();
+      const innerTop = boxRect.top + (box.clientTop || 0);
+      const innerHeight = box.clientHeight;
+
+      // 已经完整落在容器可视区里，就不动它
+      if (rect.top >= innerTop + 8 && rect.bottom <= innerTop + innerHeight - 8) {
+        continue;
+      }
+
+      const delta = rect.top - (innerTop + (innerHeight - rect.height) / 2);
+      if (Math.abs(delta) > 2) box.scrollTop += delta;
+    }
+
+    return true;
+  }
+
+  /** 在 range 所在文档里对准它：先滚容器，再滚窗口。 */
+  function centerRangeInDoc(range, doc, smooth) {
+    const win = doc.defaultView;
+    if (!win) return false;
+    if (!scrollBoxesToRange(range, doc)) return false;
+
+    // 命中在 position:fixed 的面板里时，滚窗口不会移动它，反而会把整页带跑
+    let node = elementOf(range.startContainer);
+    while (node) {
+      let cs;
+      try {
+        cs = win.getComputedStyle(node);
+      } catch (err) {
+        break;
+      }
+      if (cs.position === 'fixed') return true;
+      node = parentOrHost(node);
+    }
+
+    const rect = rectOf(range);
+    if (!rect) return false;
+
+    const margin = 40;
+    if (rect.top >= margin && rect.bottom <= win.innerHeight - margin) return true;
+
+    const dy = rect.top - (win.innerHeight * 0.45 - rect.height / 2);
+    if (Math.abs(dy) > 4) {
+      win.scrollBy({ top: dy, left: 0, behavior: smooth ? 'smooth' : 'auto' });
+    }
+
+    return true;
+  }
+
   function jumpTo(range) {
     const doc = range.startContainer.ownerDocument;
     const el = elementOf(range.startContainer);
@@ -294,14 +385,7 @@
       }
     }
 
-    try {
-      el.scrollIntoView({ block: 'center', inline: 'nearest' });
-    } catch (err) {
-      el.scrollIntoView();
-    }
-
-    const rect = range.getBoundingClientRect();
-    if (!rect || (rect.width === 0 && rect.height === 0)) {
+    if (!centerRangeInDoc(range, doc, doc === document)) {
       if (issue && issue.kind === 'hidden') {
         return { ok: false, note: '目标被隐藏（display:none 或 visibility:hidden）' };
       }
@@ -311,25 +395,39 @@
       return { ok: false, note: '目标当前不可见（可能被折叠或隐藏）' };
     }
 
-    // 把外层 iframe 逐级滚进视口
-    let win = doc.defaultView;
-    while (win && win !== window) {
-      const frame = win.frameElement;
+    // 把外层 iframe 逐级带进视口，只在命中点真的出界时才动
+    let d = doc;
+    while (d !== document) {
+      const win = d.defaultView;
+      const frame = win && win.frameElement;
       if (!frame) break;
-      try {
-        frame.scrollIntoView({ block: 'center', inline: 'nearest' });
-      } catch (err) {
-        frame.scrollIntoView();
+
+      const rect = rectOf(range);
+      if (rect) {
+        const point = toTopPoint(d, rect.left, rect.top);
+        if (point.y < 30 || point.y > window.innerHeight - 30) {
+          try {
+            frame.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+          } catch (err) {
+            frame.scrollIntoView();
+          }
+        }
       }
-      win = frame.ownerDocument.defaultView;
+
+      d = frame.ownerDocument;
     }
 
-    // 顶层文档才做像素级微调；iframe 内的坐标不能直接拿来滚顶层
-    if (doc === document) {
-      const targetTop = window.innerHeight * 0.45 - rect.height / 2;
-      const dy = rect.top - targetTop;
-      if (Math.abs(dy) > 8) {
-        window.scrollBy({ top: dy, left: 0, behavior: 'smooth' });
+    // iframe 内的坐标不能直接拿来滚顶层；先换算到顶层，再只在外框里微调
+    if (doc !== document) {
+      const rect = rectOf(range);
+      if (rect) {
+        const point = toTopPoint(doc, rect.left, rect.top);
+        if (point.y < 30 || point.y > window.innerHeight - 30) {
+          const dy = point.y - (window.innerHeight * 0.45 - rect.height / 2);
+          if (Math.abs(dy) > 6) {
+            window.scrollBy({ top: dy, left: 0, behavior: 'smooth' });
+          }
+        }
       }
     }
 

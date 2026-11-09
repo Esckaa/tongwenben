@@ -21,6 +21,7 @@
 - **同源 iframe**（2026-11-09）：顶层页面和同源 iframe 的文本合并成一份索引；在 iframe 里选中文字，一样在顶层弹面板、跨文档高亮、跳转。跨域 iframe 暂不支持。
 - **开放 Shadow DOM**（2026-11-09）：递归进入开放 shadow root，`<slot>` 按 `assignedNodes` 处理，避免投影内容被算两遍；影子树内单独注入 `::highlight` 样式。真实鼠标选区从 `shadowRoot.getSelection()` 读取（`document.getSelection()` 在影子树里只是镜像）。closed shadow root 仍不支持。
 - **折叠/隐藏目标提示**（2026-11-09）：跳转前检查 `<details>`、`display:none`、`visibility:hidden`；折叠内容会先展开再跳并提示，隐藏目标给出明确原因。
+- **跳转对准修复**（2026-11-09，0.5.2）：不再对命中所在的整个大元素做 `scrollIntoView`，改为按命中文字的实际矩形逐层滚动它所在的滚动容器；修掉长文档里点结果却滚到题目区的问题。
 
 ## 安装
 
@@ -143,7 +144,15 @@ node test/shadow-ext-cdp.js   # 真实扩展：4 处命中、shadow 样式已注
 node test/shadow-real-cdp.js  # 真实鼠标拖选：确认 document 镜像与 shadowRoot 选区
 ```
 
-当前结果：**32/32、20/20、扩展环境 HOST YES / ALL 3、PDF 阅读器 1 页 / 1 文字层 / 命中 1 处、同源 iframe 7/7 且扩展环境 top 1 / frame 2、Shadow DOM 11/11、真实鼠标 shadow 选区 host true / all 4，全部通过**
+跳转回归（大容器 + 内层滚动，0.5.2 修复）：
+
+```powershell
+node test/jump-cdp.js
+```
+
+它先把内层滚动区拉到 2600，再点上方文章里的命中；断言目标最终进入视口。
+
+当前结果：**32/32、20/20、扩展环境 HOST YES / ALL 3、PDF 阅读器 1 页 / 1 文字层 / 命中 1 处、同源 iframe 7/7 且扩展环境 top 1 / frame 2、Shadow DOM 11/11、真实鼠标 shadow 选区 host true / all 4、跳转回归 1/1，全部通过**
 （2026-11-09，Edge 157.0.4341.42 无头模式）。
 
 脚本默认使用 `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`；
@@ -180,6 +189,7 @@ test/
   serve.js       联调用本地静态服务器
   pdf-cdp.js     PDF 阅读器自测（HTTP 模式）
   pdf-ext-cdp.js PDF 阅读器自测（真实扩展页）
+  jump-cdp.js    跳转回归（大容器 + 内层滚动）
   frames-e2e.html 同源 iframe 端到端页
   frames-e2e.js
   frames-cdp.js    同源 iframe 自测（页面模式）
@@ -194,6 +204,7 @@ test/
   fixtures/stress.html    60 处重复压力页
   fixtures/sample-src.html 生成 sample.pdf 的源
   fixtures/sample.pdf      1 页测试 PDF
+  fixtures/jump.html       跳转回归页（大容器 + 内层滚动）
   fixtures/frames.html     同源 iframe 演示
   fixtures/frame-src.html  iframe 子页面
   fixtures/shadow.html     Shadow DOM 演示

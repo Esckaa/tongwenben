@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>跳转回归 · 大容器 + 内层滚动</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body { font: 16px/1.7 Georgia, "Times New Roman", serif; }
+  #scroller { height: 100vh; overflow-y: auto; }
+  #doc {
+    min-height: 3000px;
+    padding: 24px;
+    position: relative;
+  }
+  #question {
+    position: absolute;
+    top: 2600px;
+    left: 24px;
+    right: 24px;
+    padding: 10px;
+    background: #fff8e1;
+    border: 1px solid #f0e0a8;
+    font-family: system-ui, sans-serif;
+  }
+</style>
+</head>
+<body>
+<div id="scroller">
+  <div id="doc">
+    protected natural areas appears at the top of this tall block.
+    <div id="question">How many protected natural areas does it mention?</div>
+  </div>
+</div>
+
+<script src="../../extension/src/textmap.js"></script>
+<script src="../../extension/src/search.js"></script>
+<script src="../../extension/src/fallback.js"></script>
+<script src="../../extension/src/highlight.js"></script>
+<script src="../../extension/src/popup.js"></script>
+<script src="../../extension/src/content.js"></script>
+</body>
+</html>
