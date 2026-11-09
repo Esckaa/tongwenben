@@ -24,6 +24,7 @@
 - **跳转对准修复**（2026-11-09，0.5.2）：不再对命中所在的整个大元素做 `scrollIntoView`，改为按命中文字的实际矩形逐层滚动它所在的滚动容器；修掉长文档里点结果却滚到题目区的问题。
 - **全部浅色 + 页面悬停加深**（2026-11-09，0.6.0）：所有命中用当前色系的浅色标出；鼠标移到页面上某一处命中，该处变深色，移开恢复。列表不跟随滚动。
 - **6 套高亮色系**（2026-11-09，0.6.0）：设置页可选琥珀/绿/蓝/紫/粉/青，每个色系自动给出浅色与深色，网页、iframe、Shadow DOM 与列表 `<mark>` 同步。
+- **0.6.1 修复**：顶层 `page.css` 的琥珀默认色不再和主题样式抢，换色真正生效；`setActive` 只清当前高亮，不再把其余命中的浅色一起删掉。
 
 ## 安装
 
@@ -161,9 +162,10 @@ node test/jump-cdp.js
 ```powershell
 node test/hover-cdp.js     # 页面悬停加深 + 蓝色样式注入
 node test/options-cdp.js   # 6 个色系、写入 storage、预览同步
+node test/theme-ext-cdp.js # 设置页改蓝 → 真实内容页 3 处高亮变蓝
 ```
 
-当前结果：**36/36、20/20、扩展环境 HOST YES / ALL 3、PDF 阅读器 1 页 / 1 文字层 / 命中 1 处、同源 iframe 7/7 且扩展环境 top 1 / frame 2、Shadow DOM 11/11、真实鼠标 shadow 选区 host true / all 4、跳转回归 1/1、悬停/色系 1/1、设置页色板 1/1，全部通过**
+当前结果：**36/36、20/20、扩展环境 HOST YES / ALL 3、PDF 阅读器 1 页 / 1 文字层 / 命中 1 处、同源 iframe 7/7 且扩展环境 top 1 / frame 2、Shadow DOM 11/11、真实鼠标 shadow 选区 host true / all 4、跳转回归 1/1、悬停/色系 1/1、设置页色板 1/1、扩展换色链路 1/1，全部通过**
 （2026-11-09，Edge 157.0.4341.42 无头模式）。
 
 脚本默认使用 `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`；
@@ -204,6 +206,7 @@ test/
   jump-cdp.js    跳转回归（大容器 + 内层滚动）
   hover-cdp.js   页面悬停加深 + 色系注入
   options-cdp.js 设置页色板与 storage
+  theme-ext-cdp.js 设置页改色 → 真实内容页高亮
   frames-e2e.html 同源 iframe 端到端页
   frames-e2e.js
   frames-cdp.js    同源 iframe 自测（页面模式）
@@ -220,6 +223,8 @@ test/
   fixtures/sample.pdf      1 页测试 PDF
   fixtures/jump.html       跳转回归页（大容器 + 内层滚动）
   fixtures/hover.html      页面悬停回归页
+  fixtures/theme-plain.html 扩展换色验证页
+  fixtures/theme-shot.html  色系截图验证页
   fixtures/frames.html     同源 iframe 演示
   fixtures/frame-src.html  iframe 子页面
   fixtures/shadow.html     Shadow DOM 演示

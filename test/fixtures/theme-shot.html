@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>色系截图验证</title>
+<style>
+  body { margin: 0; padding: 28px; background: #fff; }
+  #t { max-width: 760px; font: 26px/1.65 Georgia, "Times New Roman", serif; color: #111; }
+</style>
+</head>
+<body>
+<p id="t">THEMETEST appears here. THEMETEST appears again. THEMETEST appears a third time.</p>
+
+<script src="../../extension/src/textmap.js"></script>
+<script src="../../extension/src/search.js"></script>
+<script src="../../extension/src/fallback.js"></script>
+<script src="../../extension/src/theme.js"></script>
+<script src="../../extension/src/highlight.js"></script>
+<script>
+  (function () {
+    const highlighter = new STS.Highlighter();
+    highlighter.setTheme('blue');
+
+    const root = document.getElementById('t');
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const ranges = [];
+    let node = null;
+    while ((node = walker.nextNode())) {
+      const text = node.nodeValue;
+      let at = 0;
+      while ((at = text.indexOf('THEMETEST', at)) !== -1) {
+        const range = document.createRange();
+        range.setStart(node, at);
+        range.setEnd(node, at + 'THEMETEST'.length);
+        ranges.push(range);
+        at += 'THEMETEST'.length;
+      }
+    }
+    highlighter.setAll(ranges);
+  })();
+</script>
+</body>
+</html>

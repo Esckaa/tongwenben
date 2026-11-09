@@ -130,11 +130,18 @@ function killTree(pid) {
       const activeText = activeRange ? activeRange.toString() : '';
       const activeIsSecond = !!(activeRange && activeRange.startContainer === p2);
 
+      const allAfterHover = CSS.highlights.get('sts-all')
+        ? Array.from(CSS.highlights.get('sts-all')).length
+        : -1;
+
       document.dispatchEvent(new MouseEvent('mousemove', {
         bubbles: true, clientX: 700, clientY: 1000
       }));
       await sleep(200);
       const afterLeave = !!CSS.highlights.get('sts-active');
+      const allAfterLeave = CSS.highlights.get('sts-all')
+        ? Array.from(CSS.highlights.get('sts-all')).length
+        : -1;
 
       dbg.highlighter.setTheme('blue');
       const css = Array.from(document.adoptedStyleSheets || [])
@@ -153,7 +160,9 @@ function killTree(pid) {
         items: items.length,
         activeText: activeText,
         activeIsSecond: activeIsSecond,
+        allAfterHover: allAfterHover,
         afterLeave: afterLeave,
+        allAfterLeave: allAfterLeave,
         blueInjected: blueInjected
       });
     })()`,
@@ -171,7 +180,15 @@ function killTree(pid) {
   let pass = false;
   try {
     const data = JSON.parse(value);
-    pass = !!(data.items === 3 && data.activeText === 'hoverword' && data.activeIsSecond && !data.afterLeave && data.blueInjected);
+    pass = !!(
+      data.items === 3 &&
+      data.activeText === 'hoverword' &&
+      data.activeIsSecond &&
+      data.allAfterHover === 3 &&
+      !data.afterLeave &&
+      data.allAfterLeave === 3 &&
+      data.blueInjected
+    );
   } catch (err) {
     pass = false;
   }

@@ -139,6 +139,13 @@
       win.CSS.highlights.delete(this.activeName);
     }
 
+    /** 只清当前高亮，保留 sts-all 的浅色底。 */
+    clearActiveDoc(doc) {
+      const win = doc && doc.defaultView;
+      if (!win || !win.CSS || !win.CSS.highlights) return;
+      win.CSS.highlights.delete(this.activeName);
+    }
+
     clear() {
       for (const doc of this.docs) this.clearDoc(doc);
       this.docs.clear();
@@ -176,7 +183,7 @@
 
     setActive(range) {
       if (this.activeDoc) {
-        this.clearDoc(this.activeDoc);
+        this.clearActiveDoc(this.activeDoc);
         this.activeDoc = null;
       }
       if (!range) return;
