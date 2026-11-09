@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>阅读理解 · 人工智能与教育</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #f6f2e9;
+    color: #26241f;
+    font: 17px/1.9 "Noto Serif SC", "Songti SC", "SimSun", Georgia, serif;
+  }
+  header {
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 32px;
+    background: #1f3a5f;
+    color: #fff;
+    font: 14px/1.5 system-ui, "Microsoft YaHei", sans-serif;
+  }
+  header .brand { font-weight: 700; letter-spacing: 0.04em; }
+  header .brand::before { content: "阅读练习"; }
+  header .sub { color: #c9d6e6; }
+  header .sub::before { content: "说明文 · 教育技术"; }
+  main { max-width: 1040px; margin: 0 auto; padding: 26px 32px 90px; }
+  .question {
+    position: relative;
+    padding: 18px 22px 16px;
+    margin-bottom: 26px;
+    background: #fffdf7;
+    border: 1px solid #e6dcc4;
+    border-left: 4px solid #e0a526;
+    border-radius: 10px;
+  }
+  .kicker {
+    font: 12px/1.4 system-ui, "Microsoft YaHei", sans-serif;
+    letter-spacing: 0.12em;
+    color: #a06a00;
+    margin-bottom: 4px;
+  }
+  .question h1 { margin: 0 0 8px; font-size: 22px; line-height: 1.5; }
+  .question p { margin: 0; color: #4a463d; font-size: 16px; }
+  article h2 {
+    margin: 26px 0 8px;
+    font-size: 19px;
+    line-height: 1.5;
+    color: #1f3a5f;
+    border-bottom: 1px solid #e3dccd;
+    padding-bottom: 4px;
+  }
+  article p { margin: 0 0 10px; text-align: justify; }
+  article b { color: #8a4b00; }
+  .note { color: #7a7468; font-size: 15px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand" aria-label="阅读练习"></span>
+  <span class="sub" aria-label="说明文 · 教育技术"></span>
+</header>
+
+<main>
+  <section class="question" id="question">
+    <div class="kicker">题目</div>
+    <h1>技术正在如何改变教育？</h1>
+    <p>
+      请从下面的文章中找出所有提到「<b>人工智能</b>」的位置，
+      并概括它在个性化学习和教师角色两个方面分别起了什么作用。
+    </p>
+  </section>
+
+  <article>
+    <h2>一、个性化学习</h2>
+    <p>
+      <b>人工智能</b>正在改变传统的课堂节奏。过去，一位老师很难同时照顾
+      几十名学生的不同进度；现在，学习系统可以根据每个学生的答题记录，
+      自动推荐下一步该练什么、哪里还需要复习。对基础薄弱的学生来说，
+      这种即时反馈能减少挫败感；对学得快的学生来说，也不必反复做已经掌握
+      的题目。技术并没有替代老师，而是把“统一讲一遍”变成了“各自练对的”。
+    </p>
+    <p>
+      在教育领域，<b>人工智能</b>还被用来分析作文结构、纠正发音，甚至模拟
+      口语对话。它擅长处理重复、可量化的任务，例如统计错题类型、生成同类
+      练习、把长文章压缩成提纲。这些工作过去要占用教师大量课后时间，
+      现在可以部分交给系统完成，让老师把精力放回提问、讨论和个别辅导上。
+    </p>
+
+    <h2>二、教师的角色</h2>
+    <p>
+      当然，<b>技术</b>也带来新的问题。系统推荐的题目可能训练过度，
+      学生的阅读面反而变窄；自动批改对开放式答案的判断仍不可靠；如果
+      学生习惯直接问答案，独立思考的时间会被压缩。因此，教师需要判断
+      哪些环节适合交给机器，哪些环节必须保留人和人之间的交流。
+    </p>
+    <p class="note">
+      技术只是工具。真正决定学习效果的，仍然是学生是否愿意停下来思考，
+      以及老师是否能在关键时刻提出一个好问题。
+    </p>
+  </article>
+</main>
+</body>
+</html>
