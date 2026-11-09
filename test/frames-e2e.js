@@ -59,6 +59,12 @@
         })
       );
 
+      // 真实鼠标操作时，顶层 document 的 selectionchange 可能在 mouseup 之后才到；
+      // 这里显式模拟，确认它不会把 iframe 的待执行检索覆盖掉。
+      setTimeout(() => {
+        document.dispatchEvent(new Event('selectionchange'));
+      }, 30);
+
       setTimeout(() => {
         try {
           const dbg = window.__STS_DEBUG__;

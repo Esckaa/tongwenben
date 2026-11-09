@@ -28,8 +28,7 @@
   let settings = Object.assign({}, DEFAULTS);
   let map = null;
   let mapDirty = true;
-  let timer = 0;
-  let pendingDoc = document;
+  const timers = new Map();
   let lastPointer = null;
   let lastKey = '';
   let lastAt = 0;
@@ -262,6 +261,9 @@
     currentSearch = null;
     lastSig = '';
     clearTimeout(refreshTimer);
+
+    for (const pending of timers.values()) clearTimeout(pending);
+    timers.clear();
   }
 
   function onEscape() {
@@ -484,9 +486,17 @@
   }
 
   function schedule(ms, doc) {
-    pendingDoc = doc || document;
-    clearTimeout(timer);
-    timer = setTimeout(() => run(pendingDoc), ms);
+    const target = doc || document;
+    const prev = timers.get(target);
+    if (prev) clearTimeout(prev);
+
+    timers.set(
+      target,
+      setTimeout(() => {
+        timers.delete(target);
+        run(target);
+      }, ms)
+    );
   }
 
   function isOurEvent(e) {
