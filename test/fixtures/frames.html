@@ -27,6 +27,13 @@
     border-radius: 8px;
     background: #fff;
   }
+  .status {
+    margin: 14px 0 0;
+    font: 13px/1.6 system-ui, sans-serif;
+    color: #666;
+  }
+  .status.good { color: #2e7d32; }
+  .status.bad { color: #b00020; }
 </style>
 </head>
 <body>
@@ -41,6 +48,31 @@
 <p>Top level: iframe needle once, outside the frame.</p>
 
 <iframe id="frame" src="frame-src.html" title="子页面"></iframe>
+
+<p id="sts-status" class="status">扩展状态：检查中…</p>
+
+<script>
+  setTimeout(function () {
+    var el = document.getElementById('sts-status');
+    var version = document.documentElement.getAttribute('data-sts-version');
+    var frame = document.getElementById('frame');
+    var frameVersion = null;
+
+    try {
+      frameVersion = frame.contentDocument.documentElement.getAttribute('data-sts-version');
+    } catch (err) {
+      // 跨域或未加载
+    }
+
+    if (!version) {
+      el.textContent = '扩展未注入：确认已重载扩展、页面已刷新；本地文件还要开启「允许访问文件网址」。';
+      el.className = 'status bad';
+    } else {
+      el.textContent = '扩展已注入：v' + version + '；iframe 已接管：' + (frameVersion ? '是' : '否');
+      el.className = frameVersion ? 'status good' : 'status bad';
+    }
+  }, 1500);
+</script>
 
 </body>
 </html>

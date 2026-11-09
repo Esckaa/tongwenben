@@ -144,7 +144,9 @@ async function main() {
       return JSON.stringify({
         host: !!document.querySelector('[data-sts-host]'),
         top: top ? Array.from(top).length : -1,
-        frame: fr ? Array.from(fr).length : -1
+        frame: fr ? Array.from(fr).length : -1,
+        topVersion: document.documentElement.getAttribute('data-sts-version'),
+        frameVersion: doc.documentElement.getAttribute('data-sts-version')
       });
     })()`);
 

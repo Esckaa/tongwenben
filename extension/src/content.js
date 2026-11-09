@@ -15,6 +15,16 @@
 
   const { TextMap, Search } = STS;
 
+  const VERSION = (() => {
+    try {
+      return window.chrome && chrome.runtime && chrome.runtime.getManifest
+        ? chrome.runtime.getManifest().version
+        : '';
+    } catch (err) {
+      return '';
+    }
+  })();
+
   const MAX_SCAN = 5000; // 最多扫描多少个命中
   const MAX_HIGHLIGHT = 600; // 最多高亮多少处
   const MOUSE_DEBOUNCE = 140;
@@ -626,6 +636,12 @@
   function watchDoc(doc) {
     if (!doc || !doc.documentElement || watchedDocs.has(doc)) return;
     watchedDocs.add(doc);
+
+    try {
+      doc.documentElement.setAttribute('data-sts-version', VERSION || 'unknown');
+    } catch (err) {
+      // 只用于诊断，失败无所谓
+    }
 
     doc.addEventListener('mouseup', (e) => onMouseUp(e, doc), true);
     doc.addEventListener('mousedown', (e) => onMouseDown(e, doc), true);
