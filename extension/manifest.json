@@ -1,12 +1,26 @@
 {
   "manifest_version": 3,
   "name": "同文本检索",
-  "version": "0.6.1",
-  "description": "选中页面文字，在指针旁列出全页相同文本，点击跳转。",
+  "short_name": "同文本检索",
+  "version": "1.0.0",
+  "description": "选中网页文字，在指针旁列出全页相同文本，点击跳转并高亮；支持同源 iframe、Shadow DOM 与内置 PDF 阅读器。",
+  "minimum_chrome_version": "120",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "permissions": ["storage"],
   "options_page": "options.html",
   "action": {
-    "default_title": "打开 PDF 阅读器"
+    "default_title": "同文本检索 · 打开 PDF 阅读器",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   },
   "background": {
     "service_worker": "src/background.js"

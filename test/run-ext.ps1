@@ -2,12 +2,13 @@
 # 用法：powershell -NoProfile -ExecutionPolicy Bypass -File test/run-ext.ps1
 param(
   [string]$Edge = "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
-  [string]$Url = "http://127.0.0.1:8765/test/ext.html"
+  [string]$Url = "http://127.0.0.1:8765/test/ext.html",
+  [string]$ExtDir = ""
 )
 
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ext = Join-Path (Split-Path -Parent $here) 'extension'
+$ext = if ($ExtDir) { $ExtDir } else { Join-Path (Split-Path -Parent $here) 'extension' }
 $taskRoot = Split-Path -Parent $here
 $wsRoot = Split-Path -Parent (Split-Path -Parent $taskRoot)
 $tmp = Join-Path $wsRoot '.dsh\tmp\sts-test'
