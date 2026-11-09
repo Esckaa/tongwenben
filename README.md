@@ -187,7 +187,8 @@ test/
 ## 排错
 
 - **重载扩展不会自动刷新已打开的标签页**：改过 `content.js` 后，除了点「重新加载」，还要刷新或重开页面，否则页面里跑的还是旧脚本。
-- `test/fixtures/frames.html` 顶部有一行状态：`扩展已注入：v0.4.2；iframe 已接管：是/否`。
+- **本地 iframe 测试必须走 HTTP**：`file://` 下每个文件是独立来源，扩展拿不到 iframe 的 `contentDocument`，会显示「iframe 已接管：否」。
+- `test/fixtures/frames.html` 的 iframe 下面有一行状态：`扩展已注入：v0.4.2；iframe 已接管：是/否`。
   - 显示「扩展未注入」→ 检查扩展是否启用、本地文件是否开了「允许访问文件网址」。
   - 显示「iframe 已接管：否」且地址是 `file://` → 改用本地 HTTP（`node test/serve.js 8765`）再试。
 - 打开控制台（F12 → Console），过滤 `[STS]`：
