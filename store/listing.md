@@ -10,7 +10,7 @@
 | 语言 | 中文（简体） |
 | 网站 | https://github.com/Esckaa/tongwenben |
 | 隐私政策 | https://esckaa.github.io/tongwenben/privacy.html |
-| 支持邮箱 | **待填写** |
+| 支持邮箱 | Esckaa20242024@163.com |
 | 许可证 | MIT |
 
 ## 简短说明

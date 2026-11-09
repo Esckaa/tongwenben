@@ -44,6 +44,11 @@ PDF 阅读器读取的是你手动选择的本地文件；PDF.js 已打包在扩
 
 - PDF.js 4.10.38（Apache-2.0），用于内置 PDF 阅读器，本地打包，见 `extension/vendor/pdfjs/LICENSE`。
 
+## 联系
+
+- 支持邮箱：Esckaa20242024@163.com
+- 问题反馈：https://github.com/Esckaa/tongwenben/issues
+
 ## 变更
 
 隐私说明随版本更新；如有变化会写进本文件与 `CHANGELOG.md`。

@@ -16,7 +16,7 @@
 - 注册时填：
   - **Account country/region**：选中国；**注册后不可改**。
   - **Account type**：个人开发者选 **Individual**（公司才需要公司审批者、法定信息）。
-  - **Publisher display name**：商店显示的发布者名，建议 `Esckaa` 或 `同文本检索`，最长 50 字符。
+  - **Publisher display name**：已定 `Esckaa`，最长 50 字符。
   - 联系人信息、开发者协议。
 - 提交后等验证邮件；可能需要几天，检查垃圾箱。
 - 验证通过后，Partner Center → Microsoft Edge → 新建扩展提交。
@@ -35,7 +35,7 @@
 | 权限与隐私问卷 | `store/permissions.md` | 已有 |
 | 隐私政策 URL | https://esckaa.github.io/tongwenben/privacy.html | 已上线 |
 | 公开演示页 | https://esckaa.github.io/tongwenben/demo.html | 已上线 |
-| 支持邮箱 | — | **待填写** |
+| 支持邮箱 | Esckaa20242024@163.com | 已定 |
 
 截图为 1280×800 PNG，符合官方“640×480 或 1280×800，最多 6 张”的要求；徽标 300×300，满足“建议 300×300、最小 128×128”。
 
@@ -52,7 +52,7 @@
 | 语言 | 中文（简体） |
 | 隐私政策 URL | https://esckaa.github.io/tongwenben/privacy.html |
 | 网站 | https://github.com/Esckaa/tongwenben |
-| 支持邮箱 | **待填写** |
+| 支持邮箱 | Esckaa20242024@163.com |
 | 搜索词 | 同文本、重复文本、查找相同文字、文本检索、网页查找、PDF 查找、英语阅读、校对 |
 | 可见性 | Public |
 | 市场 | 所有市场（或至少中国 + 主要英语市场） |
@@ -94,8 +94,8 @@
 
 ## 6. 提交前待办
 
-- [ ] 填支持邮箱
-- [ ] 确认发布者显示名（`Esckaa` / `同文本检索`）
+- [x] 填支持邮箱（Esckaa20242024@163.com）
+- [x] 确认发布者显示名（`Esckaa`）
 - [x] 部署 `docs/demo.html` 并确认可访问
 - [ ] 注册 Partner Center 并完成验证
 - [ ] 上传 zip、徽标、4 张截图
