@@ -34,7 +34,7 @@
 | 短/长描述 | `store/listing.md` | 已有 |
 | 权限与隐私问卷 | `store/permissions.md` | 已有 |
 | 隐私政策 URL | https://esckaa.github.io/tongwenben/privacy.html | 已上线 |
-| 公开演示页 | https://esckaa.github.io/tongwenben/demo.html | 待部署 |
+| 公开演示页 | https://esckaa.github.io/tongwenben/demo.html | 已上线 |
 | 支持邮箱 | — | **待填写** |
 
 截图为 1280×800 PNG，符合官方“640×480 或 1280×800，最多 6 张”的要求；徽标 300×300，满足“建议 300×300、最小 128×128”。
@@ -96,7 +96,7 @@
 
 - [ ] 填支持邮箱
 - [ ] 确认发布者显示名（`Esckaa` / `同文本检索`）
-- [ ] 部署 `docs/demo.html` 并确认可访问
+- [x] 部署 `docs/demo.html` 并确认可访问
 - [ ] 注册 Partner Center 并完成验证
 - [ ] 上传 zip、徽标、4 张截图
 - [ ] 填写隐私问卷与认证测试说明
